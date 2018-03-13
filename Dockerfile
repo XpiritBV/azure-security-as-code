@@ -1,6 +1,7 @@
 FROM microsoft/powershell
 
-COPY *.yaml /yaml/
+COPY *.yml /yml/
+COPY *.ps1 /ps/
 
 RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ trusty main" | \
     tee /etc/apt/sources.list.d/azure-cli.list
@@ -16,8 +17,7 @@ RUN apt-get install azure-cli
 RUN pwsh -c Install-Module PSYaml -f
 
 #Login the Azure SPN
-RUN pwsh -c az login --service-principal --username USER --password PW --tenant roadtoalm.com
+#RUN pwsh -c az login --service-principal --username USER --password PW --tenant roadtoalm.com
 
 RUN pwsh
-
 

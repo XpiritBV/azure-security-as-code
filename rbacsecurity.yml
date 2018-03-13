@@ -1,0 +1,19 @@
+resourcegroups:
+- name: security-test1-rg
+  rbacsecurity:
+    - user: group1
+      role: Contributor
+    - user: group2
+      role: Reader
+- name: security-test2-rg
+  rbacsecurity:
+    - user: group1
+      role: Owner
+    - user: group2
+      role: Reader
+- name: security-test3-rg
+  rbacsecurity:
+    - user: group1
+      role: Owner
+    - user: group2
+      role: Reader
