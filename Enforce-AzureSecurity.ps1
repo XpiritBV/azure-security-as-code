@@ -1,12 +1,10 @@
-$rgs = "$(az group list --output json)"
-$rgs = ConvertFrom-Json $rgs
-
 #read YAML file and set all properties checked to false
 $securityFile = [IO.File]::ReadAllText("/app/rbacsecurity.yml")
 $secYaml = ConvertFrom-YAML $securityFile
 
 foreach($rg in $secYaml.resourcegroups){
     Add-Member -InputObject $rg -type NoteProperty -Name 'Checked' -Value $False
+    Write-Host $rg
     Write-Host "rg $($rg.name)"
 
     foreach($user in $rg.rbacsecurity){
@@ -15,6 +13,9 @@ foreach($rg in $secYaml.resourcegroups){
         Write-Host "user $($user.Checked)"
     }
 }
+
+$rgs = "$(az group list --output json)"
+$rgs = ConvertFrom-Json $rgs
 
 foreach ($rg in $rgs) {
     $rgRoles = ConvertFrom-Json "$(az role assignment list --resource-group $rg.name --output json)"
@@ -27,11 +28,13 @@ foreach ($rg in $rgs) {
     }
     else {
         Write-Host "NOT FOUND $($rg.name)" -ForegroundColor Red
+        
+
     }
 }
 
 
-#check yaml file again and see which aren't checked
+check yaml file again and see which aren't checked
 foreach($rg in $secYaml.resourcegroups){
     Write-Host "rg $($rg.name) -  $($rg.Checked)"
 }

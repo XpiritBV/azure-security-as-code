@@ -13,6 +13,8 @@ RUN apt-get install apt-transport-https
 RUN apt-get update
 RUN apt-get install azure-cli
 
+RUN apt-get install jq
+
 #Install Yaml parsing module
 RUN pwsh -c Install-Module PSYaml -f
 
