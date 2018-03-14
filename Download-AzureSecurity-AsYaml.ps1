@@ -21,8 +21,11 @@ foreach ($rg in $rgs) {
     }
     
     $rgDict = @{}
-    $rgDict.Add('name',$rg.name)
-    $rgDict.Add('rbacsecurity',$userArray)
+    $rgDict.Add('resourcegroup',$rg.name)
+    if($userArray -ne $null)
+    {
+        $rgDict.Add('rbacsecurity',$userArray)
+    }
 
     $rgArray += $rgDict
 }
