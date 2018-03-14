@@ -22,9 +22,13 @@ foreach ($rg in $rgs) {
         Write-Host "matched - $($rg.name)" -ForegroundColor Green
         $foundRg = $secYaml.resourcegroups | Where({$_.resourcegroup -eq $rg.name})
         $foundRg.IsChecked = $True;
+
+        #TODO run through all roles in $rgRoles and check them
     }
     else {
         Write-Host "not found - $($rg.name)" -ForegroundColor Red
+
+        #TODO delete all roles in this RG because it is not listed
     }
 }
 
