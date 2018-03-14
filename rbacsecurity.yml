@@ -1,19 +1,65 @@
-resourcegroups:
-- name: security-test1-rg
-  rbacsecurity:
-    - user: group1
-      role: Contributor
-    - user: group2
-      role: Reader
-- name: security-test2-rg
-  rbacsecurity:
-    - user: group1
-      role: Owner
-    - user: group2
-      role: Reader
-- name: security-test3-rg
-  rbacsecurity:
-    - user: group1
-      role: Owner
-    - user: group2
-      role: Reader
+---
+
+  resourcegroups: 
+  - 
+      resourcegroup: 'akka-test-rg' 
+      rbacsecurity: 
+      - 
+          userPrincipal: 'IT-buying' 
+          role: 'Owner' 
+  - 
+      resourcegroup: 'AzureOpsBot' 
+  - 
+      resourcegroup: 'botsample2212' 
+  - 
+      resourcegroup: 'botsample44' 
+  - 
+      resourcegroup: 'botsample55' 
+  - 
+      resourcegroup: 'createresourcegroupwebhook-rg' 
+  - 
+      resourcegroup: 'eventgridtest-rg' 
+  - 
+      resourcegroup: 'ggggg-buy-dev-rg' 
+      rbacsecurity: 
+      - 
+          userPrincipal: 'IT-buying' 
+          role: 'Contributor' 
+  - 
+      resourcegroup: 'k8sgeert' 
+  - 
+      resourcegroup: 'lkfadsj' 
+  - 
+      resourcegroup: 'NotHotdog-rg' 
+  - 
+      resourcegroup: 'security-test1-rg' 
+      rbacsecurity: 
+      - 
+          userPrincipal: 'group1' 
+          role: 'Owner' 
+      - 
+          userPrincipal: 'group2' 
+          role: 'Reader' 
+  - 
+      resourcegroup: 'security-test2-rg' 
+      rbacsecurity: 
+      - 
+          userPrincipal: 'group2' 
+          role: 'Reader' 
+      - 
+          userPrincipal: 'group1' 
+          role: 'Contributor' 
+  - 
+      resourcegroup: 'testg999-buy-acc-rg' 
+      rbacsecurity: 
+      - 
+          userPrincipal: 'IT-buying' 
+          role: 'Contributor' 
+  - 
+      resourcegroup: 'testg-buy-dev-rg' 
+  - 
+      resourcegroup: 'testggg-buy-dev-rg' 
+      rbacsecurity: 
+      - 
+          userPrincipal: 'IT-buying' 
+          role: 'Contributor'
