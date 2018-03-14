@@ -1,41 +1,36 @@
-#read YAML file and set all properties checked to false
+#read YAML file and set all properties IsChecked to false
 $securityFile = [IO.File]::ReadAllText("/app/rbacsecurity.yml")
 $secYaml = ConvertFrom-YAML $securityFile
 
 foreach($rg in $secYaml.resourcegroups){
-    Add-Member -InputObject $rg -type NoteProperty -Name 'Checked' -Value $False
-    Write-Host $rg
-    Write-Host "rg $($rg.name)"
+    Add-Member -InputObject $rg -type NoteProperty -Name 'IsChecked' -Value $False
 
     foreach($user in $rg.rbacsecurity){
-        Add-Member -InputObject $user -type NoteProperty -Name 'Checked' -Value $False
-        Write-Host "user $($user)"
-        Write-Host "user $($user.Checked)"
+        Add-Member -InputObject $user -type NoteProperty -Name 'IsChecked' -Value $False
     }
 }
 
 $rgs = "$(az group list --output json)"
 $rgs = ConvertFrom-Json $rgs
 
+Write-Host "CHECKING ALL RESOURCE GROUPS"
 foreach ($rg in $rgs) {
     $rgRoles = ConvertFrom-Json "$(az role assignment list --resource-group $rg.name --output json)"
-    Write-Host "CHECKING $($rg.name) - $($rgRoles.properties.principalName)"
+    Write-Host "checking $($rg.name)"
 
-    if($secYaml.resourcegroups.Where({$_.name -eq $rg.name})){
-        Write-Host "MATCHED $($rg.name)" -ForegroundColor Green
-        $foundRg = $secYaml.resourcegroups | Where({$_.name -eq $rg.name})
-        $foundRg.Checked = $True;
+    if($secYaml.resourcegroups.Where({$_.resourcegroup -eq $rg.name})){
+        Write-Host "matched - $($rg.name)" -ForegroundColor Green
+        $foundRg = $secYaml.resourcegroups | Where({$_.resourcegroup -eq $rg.name})
+        $foundRg.IsChecked = $True;
     }
     else {
-        Write-Host "NOT FOUND $($rg.name)" -ForegroundColor Red
-        
-
+        Write-Host "not found - $($rg.name)" -ForegroundColor Red
     }
 }
 
 
-check yaml file again and see which aren't checked
+#check yaml file again and see which aren't IsChecked
 foreach($rg in $secYaml.resourcegroups){
-    Write-Host "rg $($rg.name) -  $($rg.Checked)"
+    Write-Host "rg $($rg.resourcegroup) -  $($rg.IsChecked)"
 }
 
