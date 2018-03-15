@@ -14,7 +14,8 @@ foreach ($rg in $rgs) {
     foreach($role in $rgroles)
     {
         $userDict = [ordered]@{userPrincipal = $role.properties.principalName
-                               role = $role.properties.roleDefinitionName}
+                               role = $role.properties.roleDefinitionName
+                               principalId = $role.properties.principalId}
         $userArray += $userDict
     }
     
