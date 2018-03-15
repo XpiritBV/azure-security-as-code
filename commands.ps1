@@ -1,6 +1,6 @@
-docker image build -t powershell-azurecli -f .\DockerBase\Dockerfile .
+docker image build --platform linux -t powershell-azurecli -f .\DockerBase\Dockerfile .
 
-docker run -it -v /Users/rvano/src/github/azure-security-as-code:/app powershell-azurecli
+docker run -it -v ${pwd}:/usr/app powershell-azurecli 
 
 #steps:
 #log in to azure (TODO: do this while starting container)
