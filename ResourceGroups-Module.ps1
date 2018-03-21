@@ -58,10 +58,8 @@ function Update-ResourceGroup
     $rgdetails = ConvertFrom-Yaml $yamlContent
 
     $rgRoles = "$(az role assignment list --resource-group $rgdetails.resourcegroup --output json)"
-    Write-Host "Geert $rgRoles"
     $rgRolesJson = ConvertFrom-Json $rgRoles
 
-    Write-host "geert2 $($rgRolesJson.id)"
     foreach($r in $rgdetails["rbac"])
     {
     }
