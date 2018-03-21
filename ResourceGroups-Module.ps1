@@ -30,7 +30,7 @@ function Download-ResourceGroupYaml
     New-Item $path -Force -ItemType Directory
     $filePath = Join-Path $path -ChildPath "$($resourcegroup).yml"
     Write-Host $filePath
-    ConvertTo-YAML $rgDict -OutFile $filePath -Force
+    ConvertTo-YAML $rgDict > $filePath
 }
 
 function Download-AllResourceGroups

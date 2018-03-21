@@ -3,10 +3,21 @@ Scripts to define your azure security governance as code and avoid manual settin
 
 ## Usage in general ##
 
-* Login with az login
+
+### Prerequisites
+* install yaml module needed to generate yaml outputs
+```powershell
+Install-Module PSYaml -f
+```
+
+* Login with Azure CLI and select your subscription
+
+```powershell
+az login
+```
 * import powershell script
 
-```
+```powershell
 . .\resourcegroups-module.ps1
 ```
 
