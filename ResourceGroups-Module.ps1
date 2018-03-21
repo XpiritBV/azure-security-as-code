@@ -33,8 +33,9 @@ function Download-ResourceGroupYaml
     ConvertTo-YAML $rgDict > $filePath
 }
 
+
 function Download-AllResourceGroups
-{
+{ 
     $rgs = "$(az group list --output json)"
     $rgs = ConvertFrom-Json $rgs
 

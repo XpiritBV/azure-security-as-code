@@ -45,9 +45,7 @@ function Update-SecurityGroup
     $path = Join-Path $PSScriptRoot -ChildPath "ad-groups"
     $file = Join-Path $path -ChildPath "$($securityGroup).yml"
     $yamlContent = Get-Content -Path $file -Raw
-    $secgroupmembers = ConvertFrom-Yaml -Yaml $yamlContent
-    $secgroupmembers = ConvertFrom-Json $secgroupmembers
-    
+    $secgroupmembers = ConvertFrom-Yaml $yamlContent
 
     $secGroup = "$(az ad group show --group "$($securityGroup)")"
     $secGroup = ConvertFrom-Json $secGroup
