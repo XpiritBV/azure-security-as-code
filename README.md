@@ -1,6 +1,22 @@
 # azure-security-as-code
 Scripts to define your azure security governance as code and avoid manual settings of permissions and avoiding configuration drift
 
+This library is created in a modular fashion where each module will deliver the functionality for security governance of a specific Azure resource type
+
+### Current Azure resource types supported
+* Resource Groups
+* Security Groups
+
+### Future Azure resource types on backlog
+* Azure SQL
+* Keyvault
+* Azure Datalake
+* Others
+
+If you have preferences on other resource types let us known in the issues.
+
+# Usage
+
 ## Usage in general ##
 
 
