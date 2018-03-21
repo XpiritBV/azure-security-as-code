@@ -44,3 +44,26 @@ function Download-AllResourceGroups
         Download-ResourceGroupYaml -resourcegroup $rg.name
     }
 }
+
+function Update-ResourceGroup
+{
+    param
+    (
+        [string] $resourcegroup
+    )
+
+    $path = Join-Path $PSScriptRoot -ChildPath "rg"
+    $file = Join-Path $path -ChildPath "$($resourcegroup).yml"
+    $yamlContent = Get-Content -Path $file -Raw
+    $rgdetails = ConvertFrom-Yaml $yamlContent
+
+    $rgRoles = "$(az role assignment list --resource-group $rgdetails.resourcegroup --output json)"
+    Write-Host "Geert $rgRoles"
+    $rgRolesJson = ConvertFrom-Json $rgRoles
+
+    Write-host "geert2 $($rgRolesJson.id)"
+    foreach($r in $rgdetails["rbac"])
+    {
+    }
+
+}
