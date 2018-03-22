@@ -86,7 +86,7 @@ function New-Asac-SQLServer {
     }
 
     $sqlDict.Add('sqladminpassword', $sqlpasswordDict)
-    $sqlDict.Add('ad-admins', $adadminArray)
+    $sqlDict.Add('adadmins', $adadminArray)
     $sqlDict.Add('firewallports', $firewallArray)
     
     $path = Join-Path $outputPath -ChildPath "sql"
@@ -133,7 +133,7 @@ function Get-Asac-SQLServer {
     }
 
     $sqlDict.Add('sqladminpassword', $sqlpasswordDict)
-    $sqlDict.Add('ad-admins', $adadminArray)
+    $sqlDict.Add('adadmins', $adadminArray)
     $sqlDict.Add('firewallports', $firewallArray)
     
     $path = Join-Path $outputPath -ChildPath "sql"
@@ -166,8 +166,8 @@ function Process-Asac-SQLServer {
     param
     (
         [string] $sqlservername,
+        [string] $resourcegroupname,
         [string] $basePath
-        
     )
 
     if ($basePath -eq "" -or $basePath -eq $null) {
@@ -175,10 +175,24 @@ function Process-Asac-SQLServer {
     }
 
     $path = Join-Path $basePath -ChildPath "sql"
-    $file = Join-Path $path -ChildPath "$($resourcegroup).yml"
+    $file = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
     $yamlContent = Get-Content -Path $file -Raw
-    $rgConfigured = ConvertFrom-Yaml $yamlContent
+    $sqlConfigured = ConvertFrom-Yaml $yamlContent
 
+
+    #first update the AD-ADMIN
+    $result = Invoke-Asac-AzCommandLine -azCommandLine "az sql server ad-admin create --display-name $($sqlConfigured.'adadmins'[0].userPrincipal) --object-id $($sqlConfigured.'adadmins'.principalId) --server-name rvosqlasac1 -g rgpgeert"
+    
 }
 
-New-Asac-SQLServer -sqlservername aapnoot -outputPath .\rvoazure
+function Rotate-Asac-SQLServerPassword
+{
+    param
+    (
+        [string] $sqlservername,
+        [string] $resourcegroupname,
+        [string] $basePath
+    )
+
+#since we know the keyvault and the sql, we can rotate password and update keyvault..
+}
