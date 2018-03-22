@@ -69,86 +69,79 @@ function New-Asac-SQLServer {
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
     $sqlDict = _GetSQLServerDictionary -sqlservername  "sqlserv123 #SQL Server Name" -sqladminlogin "[generated] #username of SA when creating SQL Server"
+    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "sql-bigboss #Keyname in keyvault" -keyvaultname"kvPlatform123 #Name of the keyvault where password resides" -keyvaultresourcegroup "rgTest123 #Name of the resource group where the keyvault resides"
 
-    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "sql-bigboss #Keyname in keyvault" `
-        -keyvaultname"kvPlatform123 #Name of the keyvault where password resides" `
-        -keyvaultresourcegroup "rgTest123 #Name of the resource group where the keyvault resides"
+    $adadminArray = @()
+    for ($i = 0; $i -lt 2; $i++) {
 
+        $adadminDict = _GetSQLServerADAdminDict -userPrincipal "John@domain.com #User or GroupName" -principalId "7a2eddfe-341e-4c3b-8917-58a678249a81 #Object ID of User or GroupName. If empty name will be used"
+        $adadminArray += $adadminDict
+    }
 
-$adadminArray = @()
-for ($i = 0; $i -lt 2; $i++) {
+    $firewallArray = @()
+    for ($i = 0; $i -lt 2; $i++) {
 
-    $adadminDict = _GetSQLServerADAdminDict -userPrincipal "John@domain.com #User or GroupName" -principalId "7a2eddfe-341e-4c3b-8917-58a678249a81 #Object ID of User or GroupName. If empty name will be used"
-    $adadminArray += $adadminDict
-}
+        $firewallDict = _GetSQLServerFirewallDict -rulename "Name of Rule" -startip "10.1.1.1" -endip "10.1.1.2"
+        $firewallArray += $firewallDict
+    }
 
-$firewallArray = @()
-for ($i = 0; $i -lt 2; $i++) {
-
-    $firewallDict = _GetSQLServerFirewallDict -rulename "Name of Rule" `
-        -startip "10.1.1.1" `
-        -endip "10.1.1.2"
+    $sqlDict.Add('sqladminpassword', $sqlpasswordDict)
+    $sqlDict.Add('ad-admins', $adadminArray)
+    $sqlDict.Add('firewallports', $firewallArray)
     
-    $firewallArray += $firewallDict
-}
-
-$sqlDict.Add('sqladminpassword', $sqlpasswordDict)
-$sqlDict.Add('ad-admins', $adadminArray)
-$sqlDict.Add('firewallports', $firewallArray)
-    
-$path = Join-Path $outputPath -ChildPath "sql"
-New-Item $path -Force -ItemType Directory
-$filePath = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
-Write-Host $filePath
-ConvertTo-YAML $sqlDict > $filePath                               
-
-
+    $path = Join-Path $outputPath -ChildPath "sql"
+    New-Item $path -Force -ItemType Directory
+    $filePath = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
+    Write-Host $filePath
+    ConvertTo-YAML $sqlDict > $filePath                               
 }
 
 function Get-Asac-SQLServer {
     param
     (
         [string] $sqlservername,
+        [string] $resourcegroupname,
         [string] $outputPath
     )
 
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
-    $sql = Invoke-Asac-AzCommandLine -azCommandLine "az sql server show --name $($sqlservername) --output json"
+    $sql = Invoke-Asac-AzCommandLine -azCommandLine "az sql server show --name $($sqlservername) --resource-group $($resourcegroupname) --output json"
     
-    $sqlDict = _GetSQLServerDictionary -sqlservername  $($sql.) -sqladminlogin "[generated] #username of SA when creating SQL Server"
+    $sqlDict = _GetSQLServerDictionary -sqlservername  $($sql.name) -sqladminlogin "$($sql.administratorLogin)"
 
-    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "sql-bigboss #Keyname in keyvault" `
-        -keyvaultname"kvPlatform123 #Name of the keyvault where password resides" `
-        -keyvaultresourcegroup "rgTest123 #Name of the resource group where the keyvault resides"
+    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "<fill in keyname>" `
+        -keyvaultname "<fill in keyvaultname>" `
+        -keyvaultresourcegroup "<fill in resourcegroupname>"
 
 
-$adadminArray = @()
-for ($i = 0; $i -lt 2; $i++) {
+    $adadminArray = @()
+    $admins = Invoke-Asac-AzCommandLine -azCommandLine "az sql server ad-admin list --server-name $($sqlservername) --resource-group $($resourcegroupname) --output json"
+    
+    foreach ($a in $admins) {
+        $adadminDict = _GetSQLServerADAdminDict -userPrincipal $($a.login) -principalId $($a.sid)
+        $adadminArray += $adadminDict
+    }
 
-    $adadminDict = _GetSQLServerADAdminDict -userPrincipal "John@domain.com #User or GroupName" -principalId "7a2eddfe-341e-4c3b-8917-58a678249a81 #Object ID of User or GroupName. If empty name will be used"
-    $adadminArray += $adadminDict
+    $firewallArray = @()
+    $fwRules = Invoke-Asac-AzCommandLine -azCommandLine "az sql server firewall-rule list --server $($sqlservername) --resource-group $($resourcegroupname) --output json"
+
+    foreach ($fw in $fwRules) {
+
+        $firewallDict = _GetSQLServerFirewallDict -rulename $($fw.name) -startip $($fw.startIpAddress) -endip $($fw.endIpAddress)
+        $firewallArray += $firewallDict
+    }
+
+    $sqlDict.Add('sqladminpassword', $sqlpasswordDict)
+    $sqlDict.Add('ad-admins', $adadminArray)
+    $sqlDict.Add('firewallports', $firewallArray)
+    
+    $path = Join-Path $outputPath -ChildPath "sql"
+    New-Item $path -Force -ItemType Directory
+    $filePath = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
+    Write-Host $filePath
+    ConvertTo-YAML $sqlDict > $filePath
 }
-
-$firewallArray = @()
-for ($i = 0; $i -lt 2; $i++) {
-
-    $firewallDict = _GetSQLServerFirewallDict -rulename "Name of Rule" `
-        -startip "10.1.1.1" `
-        -endip "10.1.1.2"
-    
-    $firewallArray += $firewallDict
-}
-
-$sqlDict.Add('sqladminpassword', $sqlpasswordDict)
-$sqlDict.Add('ad-admins', $adadminArray)
-$sqlDict.Add('firewallports', $firewallArray)
-    
-$path = Join-Path $outputPath -ChildPath "sql"
-New-Item $path -Force -ItemType Directory
-$filePath = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
-Write-Host $filePath
-ConvertTo-YAML $sqlDict > $filePath       }
 
 
 function Get-Asac-AllSQLServers { 
