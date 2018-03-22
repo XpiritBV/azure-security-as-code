@@ -2,9 +2,16 @@ function Download-SecurityGroupYaml
 {
     param
     (
-        [string] $securityGroup
+        [string] $securityGroup,
+        [string] $outputPath
+        
     )
 
+    if ($outputPath -eq "" -or $outputPath -eq $null)  
+    {
+        $outputPath = $PSScriptRoot
+    }
+    
     $users = "$(az ad group member list --group "$($securityGroup)")"
     $users = ConvertFrom-Json $users
 
@@ -27,7 +34,7 @@ function Download-SecurityGroupYaml
     }
 
 
-    $path = Join-Path $PSScriptRoot -ChildPath "ad-groups"
+    $path = Join-Path $outputPath -ChildPath "ad-groups"
     New-Item -ItemType Directory -Path $path -Force
     $file = Join-Path $path -ChildPath "$($securityGroup).yml"
     ConvertTo-YAML $rgDict > $file
@@ -38,11 +45,16 @@ function Update-SecurityGroup
 {
     param
     (
-        [string] $securityGroup
+        [string] $securityGroup,
+        [string] $basePath
     )
 
+    if ($basePath -eq "" -or $basePath -eq $null)  
+    {
+        $basePath = $PSScriptRoot
+    }
     
-    $path = Join-Path $PSScriptRoot -ChildPath "ad-groups"
+    $path = Join-Path $basePath -ChildPath "ad-groups"
     $file = Join-Path $path -ChildPath "$($securityGroup).yml"
     $yamlContent = Get-Content -Path $file -Raw
     $secgroupmembers = ConvertFrom-Yaml $yamlContent
@@ -77,11 +89,22 @@ function Update-SecurityGroup
 
 function Download-AllSecurityGroups
 {
+    param
+    (
+        [string] $outputPath
+    )
+    
+
+    if ($outputPath -eq "" -or $outputPath -eq $null)  
+    {
+        $outputPath = $PSScriptRoot
+    }
+
     $secGroups = "$(az ad group list --output json)"
     $secGroups = ConvertFrom-Json $secGroups
 
 
     foreach ($sg in $secGroups) {
-        Download-SecurityGroupYaml -securityGroup $sg.displayName
+        Download-SecurityGroupYaml -securityGroup $sg.displayName -outputPath $outputPath
     }
 }

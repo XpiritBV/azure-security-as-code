@@ -2,8 +2,14 @@ function Download-ResourceGroupYaml
 {
     param
     (
-        [string] $resourcegroup
+        [string] $resourcegroup,
+        [string] $outputPath
     )
+
+    if ($outputPath -eq "" -or $outputPath -eq $null)  
+    {
+        $outputPath = $PSScriptRoot
+    }
 
     $rg = "$(az group show --name $($resourcegroup) --output json)"
     $rg = ConvertFrom-Json $rg
@@ -26,7 +32,7 @@ function Download-ResourceGroupYaml
     $rgDict.Add('resourcegroup',$rg.name)
     $rgDict.Add('rbac',$rbacArray)
 
-    $path = Join-Path $PSScriptRoot -ChildPath "rg"
+    $path = Join-Path $outputPath -ChildPath "rg"
     New-Item $path -Force -ItemType Directory
     $filePath = Join-Path $path -ChildPath "$($resourcegroup).yml"
     Write-Host $filePath
@@ -36,12 +42,22 @@ function Download-ResourceGroupYaml
 
 function Download-AllResourceGroups
 { 
+    param
+    (
+        [string] $outputPath
+    )
+
+    if ($outputPath -eq "" -or $outputPath -eq $null)  
+    {
+        $outputPath = $PSScriptRoot
+    }
+
     $rgs = "$(az group list --output json)"
     $rgs = ConvertFrom-Json $rgs
 
 
     foreach ($rg in $rgs) {
-        Download-ResourceGroupYaml -resourcegroup $rg.name
+        Download-ResourceGroupYaml -resourcegroup $rg.name -outputPath $outputPath
     }
 }
 

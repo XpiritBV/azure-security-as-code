@@ -1,0 +1,25 @@
+---
+#run this file with the environment and target subscription as input
+projectname: SuperProject1
+description: Description of Super Project
+shortname: supproj1
+tags: 
+  # Will be applied to the resource groups
+  - Tag1
+  - Tag2
+  - Tag3
+  - Tag4
+resourcegroups:
+  - rgp-we-project123
+  - rgp-we-project456
+  - rgp-we-project789
+ad-groups:
+  - SecurityGroup (supproj1)
+  - SecurityGroup1
+  - SecurityGroup2
+  - SecurityGroup3
+vsts-endpoints:
+  - rgp-we-project123
+  - rgp-we-project456
+serviceprincipals:
+  - supproj1-dev
