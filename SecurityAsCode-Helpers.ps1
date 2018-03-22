@@ -1,5 +1,5 @@
 #executes AZ command and returns an PSObject
-function Execute-AzCommandLine
+function Invoke-Asac-AzCommandLine
 {
     param
     (
@@ -10,5 +10,19 @@ function Execute-AzCommandLine
     $result = ConvertFrom-Json $resultJson 
     
     return $result
+}
+
+function _Get-Asac-OutputPath
+{
+    param 
+    (
+        [string] $outputPath
+    )
+    
+    if ($outputPath -eq "" -or $outputPath -eq $null)  
+    {
+        $outputPath = $PSScriptRoot
+    }
+    return $outputPath
 }
 

@@ -9,10 +9,8 @@ function Get-Asac-ResourceGroup
         [string] $outputPath
     )
 
-    if ($outputPath -eq "" -or $outputPath -eq $null)  
-    {
-        $outputPath = $PSScriptRoot
-    }
+    $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
+
 
     $rg = Invoke-AzCommandLine -azCommandLine "az group show --name $($resourcegroup) --output json"
 
@@ -48,11 +46,8 @@ function Get-Asac-AllResourceGroups
     (
         [string] $outputPath
     )
+    $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
-    if ($outputPath -eq "" -or $outputPath -eq $null)  
-    {
-        $outputPath = $PSScriptRoot
-    }
 
     $rgs = Invoke-AzCommandLine -azCommandLine "az group list --output json)"
 
@@ -71,10 +66,7 @@ function Process-Asac-ResourceGroup
         
     )
 
-    if ($basePath -eq "" -or $basePath -eq $null)  
-    {
-        $basePath = $PSScriptRoot
-    }
+    $basePath = _Get-Asac-OutputPath -outputPath $basePath
 
     $path = Join-Path $basePath -ChildPath "rg"
     $file = Join-Path $path -ChildPath "$($resourcegroup).yml"

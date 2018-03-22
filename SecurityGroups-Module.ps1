@@ -6,11 +6,8 @@ function Get-Asac-SecurityGroup
         [string] $outputPath
         
     )
+    $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
-    if ($outputPath -eq "" -or $outputPath -eq $null)  
-    {
-        $outputPath = $PSScriptRoot
-    }
     
     $users = "$(az ad group member list --group "$($securityGroup)")"
     $users = ConvertFrom-Json $users
@@ -49,10 +46,8 @@ function Process-Asac-SecurityGroup
         [string] $basePath
     )
 
-    if ($basePath -eq "" -or $basePath -eq $null)  
-    {
-        $basePath = $PSScriptRoot
-    }
+    $basePath = _Get-Asac-OutputPath -outputPath $basePath
+
     
     $path = Join-Path $basePath -ChildPath "ad-groups"
     $file = Join-Path $path -ChildPath "$($securityGroup).yml"
@@ -94,11 +89,9 @@ function Get-Asac-AllSecurityGroups
         [string] $outputPath
     )
     
+    $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
-    if ($outputPath -eq "" -or $outputPath -eq $null)  
-    {
-        $outputPath = $PSScriptRoot
-    }
+
 
     $secGroups = "$(az ad group list --output json)"
     $secGroups = ConvertFrom-Json $secGroups
