@@ -1,4 +1,7 @@
-function Download-ResourceGroupYaml
+#Import Helpers
+. .\SecurityAsCode-Helpers.ps1
+
+function Get-Asac-ResourceGroup
 {
     param
     (
@@ -11,8 +14,7 @@ function Download-ResourceGroupYaml
         $outputPath = $PSScriptRoot
     }
 
-    $rg = "$(az group show --name $($resourcegroup) --output json)"
-    $rg = ConvertFrom-Json $rg
+    $rg = Invoke-AzCommandLine -azCommandLine "az group show --name $($resourcegroup) --output json"
 
     $roleassignment = "$(az role assignment list -g "$($resourcegroup)")" 
     $roleassignment = ConvertFrom-Json $roleassignment
@@ -40,7 +42,7 @@ function Download-ResourceGroupYaml
 }
 
 
-function Download-AllResourceGroups
+function Get-Asac-AllResourceGroups
 { 
     param
     (
@@ -52,11 +54,80 @@ function Download-AllResourceGroups
         $outputPath = $PSScriptRoot
     }
 
-    $rgs = "$(az group list --output json)"
-    $rgs = ConvertFrom-Json $rgs
+    $rgs = Invoke-AzCommandLine -azCommandLine "az group list --output json)"
 
 
     foreach ($rg in $rgs) {
-        Download-ResourceGroupYaml -resourcegroup $rg.name -outputPath $outputPath
+        Get-Asac-ResourceGroup -resourcegroup $rg.name -outputPath $outputPath
     }
 }
+
+function Process-Asac-ResourceGroup
+{
+    param
+    (
+        [string] $resourcegroup,
+        [string] $basePath
+        
+    )
+
+    if ($basePath -eq "" -or $basePath -eq $null)  
+    {
+        $basePath = $PSScriptRoot
+    }
+
+    $path = Join-Path $basePath -ChildPath "rg"
+    $file = Join-Path $path -ChildPath "$($resourcegroup).yml"
+    $yamlContent = Get-Content -Path $file -Raw
+    $rgConfigured = ConvertFrom-Yaml $yamlContent
+
+    #First get all the UPN that are currently assigned to the resource group
+    $rgRoles = Invoke-AzCommandLine -azCommandLine "az role assignment list --resource-group $($resourcegroup) --output json"
+
+    foreach($upn in $rgConfigured.rbac){
+        
+        #try and find the upn in the current resource group 
+        #if this is found, check if the role is still the same
+        #add / remove or update UPN
+        
+        #check if there is an object id in the file.. If not. Get the Object ID first
+        $principalID = ""
+
+        if ($upn.principalId -ne $null -and $upn.principalId -ne "")
+        {       
+            $principalID = $upn.principalId
+        }
+        else 
+        {
+            $user = Invoke-AzCommandLine -azCommandLine "az ad user show --upn-or-object-id $($upn.principalName) --output json"
+            $principalID = $user.objectid
+        }
+
+        $foundUser = $rgRoles | Where-Object {$_.properties.principalId -eq $principalID -and $_.properties.roleDefinitionName -eq $($upn.role)}
+        
+        if ($foundUser -eq $null)
+        {
+            #member found with name and same role
+            #nothing to do
+            Write-Host "[$($upn.userPrincipal)] not found in role [$($upn.role)]. Add user" -ForegroundColor Yellow
+            Invoke-AzCommandLine -azCommandLine "az role assignment create --role $($upn.role) --assignee $($principalID) --resource-group $($resourcegroup)"
+        }
+        else 
+        {
+            #member found with name and same role
+            #nothing to do
+            Write-Host "Found [$($upn.userPrincipal)] in role [$($upn.role)] as configured. No action" -ForegroundColor Green
+            Add-Member -InputObject $foundUser -type NoteProperty -Name 'Processed' -Value $true
+        }
+    }
+
+            #No Delete all users that have not been processed by file
+
+            $nonProcessed = $rgRoles | Where-Object {$_.Processed -eq $null -or $_.Processed -eq $false}
+            foreach ($as in $nonProcessed)
+            {
+                Write-Host "Deleting [$($as.properties.principalName)] from role [$($as.properties.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
+                Invoke-AzCommandLine -azCommandLine "az role assignment delete --role $($as.properties.roleDefinitionName) --assignee $($as.properties.principalId) --resource-group $($resourcegroup)"
+            }
+    }
+
