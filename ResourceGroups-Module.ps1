@@ -135,4 +135,3 @@ function Process-ResourceGroup
 
 }
 
-Process-ResourceGroup rgpgeert .\rvoazure
