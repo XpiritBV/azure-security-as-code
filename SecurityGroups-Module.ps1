@@ -1,4 +1,4 @@
-function Download-SecurityGroupYaml
+function Get-Asac-SecurityGroup
 {
     param
     (
@@ -41,7 +41,7 @@ function Download-SecurityGroupYaml
 }
 
 
-function Update-SecurityGroup
+function Process-Asac-SecurityGroup
 {
     param
     (
@@ -87,7 +87,7 @@ function Update-SecurityGroup
     }
 }
 
-function Download-AllSecurityGroups
+function Get-Asac-AllSecurityGroups
 {
     param
     (
@@ -105,6 +105,6 @@ function Download-AllSecurityGroups
 
 
     foreach ($sg in $secGroups) {
-        Download-SecurityGroupYaml -securityGroup $sg.displayName -outputPath $outputPath
+        Get-Asac-SecurityGroup -securityGroup $sg.displayName -outputPath $outputPath
     }
 }
