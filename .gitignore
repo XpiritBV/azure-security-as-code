@@ -8,6 +8,11 @@
 *.user
 *.userosscache
 *.sln.docstates
+ad-groups/
+rg/
+rvoazure/
+login.txt
+commands.zip
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
