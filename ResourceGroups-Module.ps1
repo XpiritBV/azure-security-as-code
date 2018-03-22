@@ -61,23 +61,78 @@ function Download-AllResourceGroups
     }
 }
 
-function Update-ResourceGroup
+function Process-ResourceGroup
 {
     param
     (
-        [string] $resourcegroup
+        [string] $resourcegroup,
+        [string] $basePath
+        
     )
 
-    $path = Join-Path $PSScriptRoot -ChildPath "rg"
-    $file = Join-Path $path -ChildPath "$($resourcegroup).yml"
-    $yamlContent = Get-Content -Path $file -Raw
-    $rgdetails = ConvertFrom-Yaml $yamlContent
-
-    $rgRoles = "$(az role assignment list --resource-group $rgdetails.resourcegroup --output json)"
-    $rgRolesJson = ConvertFrom-Json $rgRoles
-
-    foreach($r in $rgdetails["rbac"])
+    if ($basePath -eq "" -or $basePath -eq $null)  
     {
+        $basePath = $PSScriptRoot
     }
 
+    $path = Join-Path $basePath -ChildPath "rg"
+    $file = Join-Path $path -ChildPath "$($resourcegroup).yml"
+    $yamlContent = Get-Content -Path $file -Raw
+    $rgConfigured = ConvertFrom-Yaml $yamlContent
+
+    #First get all the UPN that are currently assigned to the resource group
+    $rgRolesJson = "$(az role assignment list --resource-group $($resourcegroup) --output json)"
+    $rgRoles = ConvertFrom-Json $rgRolesJson
+
+
+    foreach($upn in $rgConfigured.rbac){
+        
+        #try and find the upn in the current resource group 
+        #if this is found, check if the role is still the same
+        #add / remove or update UPN
+        
+        #check if there is an object id in the file.. If not. Get the Object ID first
+        $principalID = ""
+
+        if ($upn.principalId -ne $null -and $upn.principalId -ne "")
+        {       
+            $principalID = $upn.principalId
+        }
+        else 
+        {
+            $userJson = "$(az ad user show --upn-or-object-id $($upn.principalName) --output json)"
+            $user = ConvertFrom-Json $userJson
+            $principalID = $user.objectid
+        }
+
+        $foundUser = $rgRoles | Where-Object {$_.properties.principalId -eq $principalID -and $_.properties.roleDefinitionName -eq $($upn.role)}
+        
+        if ($foundUser -eq $null)
+        {
+            #member found with name and same role
+            #nothing to do
+            Write-Host "[$($upn.userPrincipal)] not found in role [$($upn.role)]. Add user" -ForegroundColor Yellow
+            $result  = "$(az role assignment create --role $($upn.role) --assignee $($principalID) --resource-group $($resourcegroup))"
+        }
+        else 
+        {
+            #member found with name and same role
+            #nothing to do
+            Write-Host "Found [$($upn.userPrincipal)] in role [$($upn.role)] as configured. No action" -ForegroundColor Green
+            Add-Member -InputObject $foundUser -type NoteProperty -Name 'Processed' -Value $true
+        }
+    }
+
+            #No Delete all users that have not been processed by file
+
+            $nonProcessed = $rgRoles | Where-Object {$_.Processed -eq $null -or $_.Processed -eq $false}
+            foreach ($as in $nonProcessed)
+            {
+                Write-Host "Deleting [$($as.properties.principalName)] from role [$($as.properties.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
+                $result  = "$(az role assignment delete --role $($as.properties.roleDefinitionName) --assignee $($as.properties.principalId) --resource-group $($resourcegroup))"
+            }
+    
+
 }
+
+Process-ResourceGroup rgpgeert .\rvoazure
