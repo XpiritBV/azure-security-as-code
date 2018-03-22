@@ -110,9 +110,9 @@ function Get-Asac-SQLServer {
     
     $sqlDict = _GetSQLServerDictionary -sqlservername  $($sql.name) -sqladminlogin "$($sql.administratorLogin)"
 
-    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "<fill in keyname>" `
-        -keyvaultname "<fill in keyvaultname>" `
-        -keyvaultresourcegroup "<fill in resourcegroupname>"
+    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "<fill in keyname or empty when using AAD>" `
+        -keyvaultname "<fill in keyvaultname or empty when using AAD>" `
+        -keyvaultresourcegroup "<fill in resourcegroupname or empty when using AAD>"
 
 
     $adadminArray = @()
@@ -154,11 +154,11 @@ function Get-Asac-AllSQLServers {
         $outputPath = $PSScriptRoot
     }
 
-    $sqlservs = Invoke-AzCommandLine -azCommandLine "az sql server list --output json)"
+    $sqlservs = Invoke-Asac-AzCommandLine -azCommandLine "az sql server list --output json"
 
 
     foreach ($sqls in $sqlservs) {
-        Get-Asac-SQLServer -sqlservername $sqls.name -outputPath $outputPath
+        Get-Asac-SQLServer -sqlservername $sqls.name  -resourcegroupname $sqls.resourceGroup -outputPath $outputPath
     }
 }
 
