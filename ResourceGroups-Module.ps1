@@ -1,3 +1,6 @@
+#Import Helpers
+. .\SecurityAsCode-Helpers.ps1
+
 function Download-ResourceGroupYaml
 {
     param
@@ -11,8 +14,7 @@ function Download-ResourceGroupYaml
         $outputPath = $PSScriptRoot
     }
 
-    $rg = "$(az group show --name $($resourcegroup) --output json)"
-    $rg = ConvertFrom-Json $rg
+    $rg = Execute-AzCommandLine -azCommandLine "az group show --name $($resourcegroup) --output json"
 
     $roleassignment = "$(az role assignment list -g "$($resourcegroup)")" 
     $roleassignment = ConvertFrom-Json $roleassignment
@@ -52,8 +54,7 @@ function Download-AllResourceGroups
         $outputPath = $PSScriptRoot
     }
 
-    $rgs = "$(az group list --output json)"
-    $rgs = ConvertFrom-Json $rgs
+    $rgs = Execute-AzCommandLine -azCommandLine "az group list --output json)"
 
 
     foreach ($rg in $rgs) {
@@ -81,9 +82,7 @@ function Process-ResourceGroup
     $rgConfigured = ConvertFrom-Yaml $yamlContent
 
     #First get all the UPN that are currently assigned to the resource group
-    $rgRolesJson = "$(az role assignment list --resource-group $($resourcegroup) --output json)"
-    $rgRoles = ConvertFrom-Json $rgRolesJson
-
+    $rgRoles = Execute-AzCommandLine -azCommandLine "az role assignment list --resource-group $($resourcegroup) --output json"
 
     foreach($upn in $rgConfigured.rbac){
         
@@ -100,8 +99,7 @@ function Process-ResourceGroup
         }
         else 
         {
-            $userJson = "$(az ad user show --upn-or-object-id $($upn.principalName) --output json)"
-            $user = ConvertFrom-Json $userJson
+            $user = Execute-AzCommandLine -azCommandLine "az ad user show --upn-or-object-id $($upn.principalName) --output json"
             $principalID = $user.objectid
         }
 
@@ -112,7 +110,7 @@ function Process-ResourceGroup
             #member found with name and same role
             #nothing to do
             Write-Host "[$($upn.userPrincipal)] not found in role [$($upn.role)]. Add user" -ForegroundColor Yellow
-            $result  = "$(az role assignment create --role $($upn.role) --assignee $($principalID) --resource-group $($resourcegroup))"
+            Execute-AzCommandLine -azCommandLine "az role assignment create --role $($upn.role) --assignee $($principalID) --resource-group $($resourcegroup)"
         }
         else 
         {
@@ -129,9 +127,7 @@ function Process-ResourceGroup
             foreach ($as in $nonProcessed)
             {
                 Write-Host "Deleting [$($as.properties.principalName)] from role [$($as.properties.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
-                $result  = "$(az role assignment delete --role $($as.properties.roleDefinitionName) --assignee $($as.properties.principalId) --resource-group $($resourcegroup))"
+                Execute-AzCommandLine -azCommandLine "az role assignment delete --role $($as.properties.roleDefinitionName) --assignee $($as.properties.principalId) --resource-group $($resourcegroup)"
             }
-    
-
-}
+    }
 
