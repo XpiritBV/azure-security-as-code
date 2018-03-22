@@ -12,7 +12,7 @@ function Get-Asac-ResourceGroup
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
 
-    $rg = Invoke-AzCommandLine -azCommandLine "az group show --name $($resourcegroup) --output json"
+    $rg = Invoke-Asac-AzCommandLine -azCommandLine "az group show --name $($resourcegroup) --output json"
 
     $roleassignment = "$(az role assignment list -g "$($resourcegroup)")" 
     $roleassignment = ConvertFrom-Json $roleassignment
@@ -49,7 +49,7 @@ function Get-Asac-AllResourceGroups
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
 
-    $rgs = Invoke-AzCommandLine -azCommandLine "az group list --output json)"
+    $rgs = Invoke-Asac-AzCommandLine -azCommandLine "az group list --output json)"
 
 
     foreach ($rg in $rgs) {
@@ -74,7 +74,7 @@ function Process-Asac-ResourceGroup
     $rgConfigured = ConvertFrom-Yaml $yamlContent
 
     #First get all the UPN that are currently assigned to the resource group
-    $rgRoles = Invoke-AzCommandLine -azCommandLine "az role assignment list --resource-group $($resourcegroup) --output json"
+    $rgRoles = Invoke-Asac-AzCommandLine -azCommandLine "az role assignment list --resource-group $($resourcegroup) --output json"
 
     foreach($upn in $rgConfigured.rbac){
         
@@ -91,7 +91,7 @@ function Process-Asac-ResourceGroup
         }
         else 
         {
-            $user = Invoke-AzCommandLine -azCommandLine "az ad user show --upn-or-object-id $($upn.principalName) --output json"
+            $user = Invoke-Asac-AzCommandLine -azCommandLine "az ad user show --upn-or-object-id $($upn.principalName) --output json"
             $principalID = $user.objectid
         }
 
@@ -102,7 +102,7 @@ function Process-Asac-ResourceGroup
             #member found with name and same role
             #nothing to do
             Write-Host "[$($upn.userPrincipal)] not found in role [$($upn.role)]. Add user" -ForegroundColor Yellow
-            Invoke-AzCommandLine -azCommandLine "az role assignment create --role $($upn.role) --assignee $($principalID) --resource-group $($resourcegroup)"
+            Invoke-Asac-AzCommandLine -azCommandLine "az role assignment create --role $($upn.role) --assignee $($principalID) --resource-group $($resourcegroup)"
         }
         else 
         {
@@ -119,7 +119,7 @@ function Process-Asac-ResourceGroup
             foreach ($as in $nonProcessed)
             {
                 Write-Host "Deleting [$($as.properties.principalName)] from role [$($as.properties.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
-                Invoke-AzCommandLine -azCommandLine "az role assignment delete --role $($as.properties.roleDefinitionName) --assignee $($as.properties.principalId) --resource-group $($resourcegroup)"
+                Invoke-Asac-AzCommandLine -azCommandLine "az role assignment delete --role $($as.properties.roleDefinitionName) --assignee $($as.properties.principalId) --resource-group $($resourcegroup)"
             }
     }
 
