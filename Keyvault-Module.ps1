@@ -50,7 +50,7 @@ function Get-Asac-Keyvault {
     }
     
     $kvDict = [ordered]@{  keyvaultname = $keyvaultname
-                            # properties = $properties
+                            #properties = $properties
                             accessPolicies = $accessPolicies
     }
     
