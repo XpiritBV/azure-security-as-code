@@ -19,41 +19,17 @@ function Get-Asac-Keyvault {
     #     enabledForTemplateDeployment = $keyvault.properties.enabledForTemplateDeployment
     # }
 
-    $accessPolicies = @()
+    $accessPoliciesArray = @()
     foreach($accessPolicy in $keyvault.properties.accessPolicies){
-
-        $certificatePermissions = @()
-        foreach($certificatePermission in $accessPolicy.permissions.certificates){
-            $certificatePermissions += $certificatePermission
-        }
-
-        $keyPermissions = @()
-        foreach($keyPermission in $accessPolicy.permissions.keys){
-            $keyPermissions += $keyPermission
-        }
-
-        $secretPermissions = @()
-        foreach($secretPermission in $accessPolicy.permissions.secrets){
-            $secretPermissions += $secretPermission
-        }
-
-        $policy = [ordered]@{
-            applicationId = $accessPolicy.applicationId
-            objectId = $accessPolicy.objectId
-            permissions = [ordered]@{
-                certificates = $certificatePermissions
-                keys = $keyPermissions
-                secrets = $secretPermissions
-            }
-        }
-        $accessPolicies += $policy
+        $accessPolicy.PSObject.Properties.Remove('tenantId')
+        $accessPolicy.permissions.PSObject.Properties.Remove('storage')
+        $accessPoliciesArray += $accessPolicy
     }
     
-    $kvDict = [ordered]@{  keyvaultname = $keyvaultname
-                            #properties = $properties
-                            accessPolicies = $accessPolicies
-    }
-    
+    $kvDict = [ordered]@{}
+    $kvDict.Add('keyvaultname',$keyvaultname)
+    $kvDict.Add('accessPolicies',$accessPoliciesArray)
+
     $path = Join-Path $outputPath -ChildPath "kv"
     New-Item $path -Force -ItemType Directory
     $filePath = Join-Path $path -ChildPath "kv.$($keyvaultname).yml"
@@ -78,3 +54,5 @@ function Get-Asac-AllKeyvaults {
         Get-Asac-Keyvault -name $keyvault.name -outputPath $outputPath
     }
 }
+
+Get-Asac-AllKeyvaults -outputPath .\rvoazure
