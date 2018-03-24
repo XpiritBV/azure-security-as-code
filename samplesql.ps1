@@ -21,3 +21,4 @@ $sduser = New-Object System.Data.SqlClient.SqlCommand($($sqlrole), $Global:condb
 $sduser.Connection.Open();
 $sduser.ExecuteNonQuery();
 $sduser.Connection.Close();
+
