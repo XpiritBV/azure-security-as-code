@@ -23,7 +23,7 @@ If you have preferences on other resource types let us known in the issues.
 ### Prerequisites
 * install yaml module needed to generate yaml outputs
 ```powershell
-Install-Module PSYaml -f
+Install-Module powershell-yaml
 ```
 
 * Login with Azure CLI and select your subscription
