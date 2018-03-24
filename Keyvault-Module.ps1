@@ -55,4 +55,3 @@ function Get-Asac-AllKeyvaults {
     }
 }
 
-Get-Asac-AllKeyvaults -outputPath .\rvoazure

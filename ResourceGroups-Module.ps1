@@ -34,7 +34,7 @@ function Get-Asac-ResourceGroup
 
     $path = Join-Path $outputPath -ChildPath "rg"
     New-Item $path -Force -ItemType Directory
-    $filePath = Join-Path $path -ChildPath "$($resourcegroup).yml"
+    $filePath = Join-Path $path -ChildPath "rg.$($resourcegroup).yml"
     Write-Host $filePath
     ConvertTo-YAML $rgDict > $filePath
 }
@@ -69,7 +69,7 @@ function Process-Asac-ResourceGroup
     $basePath = _Get-Asac-OutputPath -outputPath $basePath
 
     $path = Join-Path $basePath -ChildPath "rg"
-    $file = Join-Path $path -ChildPath "$($resourcegroup).yml"
+    $file = Join-Path $path -ChildPath "rg.$($resourcegroup).yml"
     $yamlContent = Get-Content -Path $file -Raw
     $rgConfigured = ConvertFrom-Yaml $yamlContent
 
