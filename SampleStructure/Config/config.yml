@@ -1,0 +1,11 @@
+---
+  dls:
+    ignorepaths:
+      - /assembly*
+      - /test
+      - /simple/raw
+    depth: 3
+  kv:
+    includeproperties: true
+  sql:
+    includefirewall: true
