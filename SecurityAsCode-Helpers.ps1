@@ -127,4 +127,18 @@ function _Execute-Query
     return $ds
 }
     
- 
+function _Get-KeyVaultSecret
+{
+    param
+    (
+        [string] $keyvaultname,
+        [string] $secretname
+    )
+
+    $cmdLine = "az keyvault secret show --vault-name $keyvaultname --name $secretname"
+    $secret = Invoke-Asac-AzCommandLine -azCommandLine $cmdLine
+
+    
+
+    return $secret.value
+}
