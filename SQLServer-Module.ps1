@@ -59,6 +59,20 @@ function _GetSQLServerADAdminDict {
 
     return $adadminDict
 }
+
+function _GetSQLDBDictionary {
+    param
+    (
+        [string] $databaseName
+    )
+
+    $sqlDict = [ordered]@{  databaseName = $databaseName
+        
+    }
+
+    return $sqlDict
+}
+
 function New-Asac-SQLServer {
     param
     (
@@ -181,8 +195,61 @@ function Process-Asac-SQLServer {
 
 
     #first update the AD-ADMIN
-    $result = Invoke-Asac-AzCommandLine -azCommandLine "az sql server ad-admin create --display-name $($sqlConfigured.'adadmins'[0].userPrincipal) --object-id $($sqlConfigured.'adadmins'.principalId) --server-name rvosqlasac1 -g rgpgeert"
+    $result = Invoke-Asac-AzCommandLine -azCommandLine "az sql server ad-admin create --display-name ""$($sqlConfigured.'adadmins'[0].userPrincipal)"" --object-id $($sqlConfigured.'adadmins'.principalId) --server-name $($sqlConfigured.sqlservername) -g $resourcegroupname"
     
+}
+
+function Get-Asac-AllSQLDatabases {
+    param
+    (
+        [string] $sqlservername,
+        [string] $resourcegroupname,
+        [string] $outputPath
+    )
+
+    $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
+
+    $databases = Invoke-Asac-AzCommandLine -azCommandLine "az sql db list --server $($sqlservername) --resource-group $($resourcegroupname) --output json"
+    
+    foreach($db in $databases)
+    {
+        _GetSQLDBDictionary -databaseName $db.name
+
+        #Now get all the users in the database...
+
+    }
+
+    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "<fill in keyname or empty when using AAD>" `
+        -keyvaultname "<fill in keyvaultname or empty when using AAD>" `
+        -keyvaultresourcegroup "<fill in resourcegroupname or empty when using AAD>"
+
+
+    $adadminArray = @()
+    $admins = Invoke-Asac-AzCommandLine -azCommandLine "az sql server ad-admin list --server-name $($sqlservername) --resource-group $($resourcegroupname) --output json"
+    
+    foreach ($a in $admins) {
+        $adadminDict = _GetSQLServerADAdminDict -userPrincipal $($a.login) -principalId $($a.sid)
+        $adadminArray += $adadminDict
+    }
+
+    $firewallArray = @()
+    $fwRules = Invoke-Asac-AzCommandLine -azCommandLine "az sql server firewall-rule list --server $($sqlservername) --resource-group $($resourcegroupname) --output json"
+
+    foreach ($fw in $fwRules) {
+
+        $firewallDict = _GetSQLServerFirewallDict -rulename $($fw.name) -startip $($fw.startIpAddress) -endip $($fw.endIpAddress)
+        $firewallArray += $firewallDict
+    }
+
+    $sqlDict.Add('sqladminpassword', $sqlpasswordDict)
+    $sqlDict.Add('adadmins', $adadminArray)
+    $sqlDict.Add('firewallports', $firewallArray)
+    
+    $path = Join-Path $outputPath -ChildPath "sql"
+    New-Item $path -Force -ItemType Directory
+    $filePath = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
+    Write-Host $filePath
+    ConvertTo-YAML $sqlDict > $filePath
 }
 
 function Rotate-Asac-SQLServerPassword
@@ -196,3 +263,5 @@ function Rotate-Asac-SQLServerPassword
 
 #since we know the keyvault and the sql, we can rotate password and update keyvault..
 }
+
+Process-Asac-SQLServer -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -basePath .\rvoazure

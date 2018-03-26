@@ -1,0 +1,10 @@
+name: hello
+databases:
+  - name
+  permissions:
+    -object
+    permission
+    -object
+    permission
+blob:
+  
