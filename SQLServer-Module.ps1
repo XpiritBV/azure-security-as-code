@@ -127,7 +127,7 @@ function _Get-Asac-AllSQLDatabasesArray {
         [string] $resourcegroupname
     )
 
-    _Open_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername | Out-Null
+    _Open_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername -rulename "PSRunner" | Out-Null
     $databases = Invoke-Asac-AzCommandLine -azCommandLine "az sql db list --server $($sqlservername) --resource-group $($resourcegroupname) --output json"
     $dbArray = @()
     foreach ($db in $databases) {
@@ -142,53 +142,69 @@ function _Get-Asac-AllSQLDatabasesArray {
         $dbDict.Add('users', $usersAndRoles)
         $dbArray += $dbDict
     }
-    _Close_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername | Out-Null
+    _Close_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername -rulename "PSrunner" | Out-Null
 
     return $dbArray
 }
 
-function _Open_SQLFirewall {
+function _Add-Firewall-IP
+{
     param
     (
         [string] $resourceGroupName,
-        [string] $servername
+        [string] $servername,
+        [string] $rulename,
+        [string] $startip,
+        [string] $endip
+
     )
-    #documentation
-    #https://docs.microsoft.com/en-us/azure/sql-database/sql-database-firewall-configure
-    #https://gallery.technet.microsoft.com/scriptcenter/Get-ExternalPublic-IP-c1b601bb
-    $rulename = "PSrunner"
-    $ip = Invoke-RestMethod http://ipinfo.io/json | Select -exp ip
-    $fw = Get-AzureRmSqlServerFirewallRule -FirewallRuleName  $ruleName -ResourceGroupName $resourceGroupName -ServerName $servername -ErrorAction SilentlyContinue
-    if ($fw) {
-        Set-AzureRmSqlServerFirewallRule -ResourceGroupName "$resourceGroupName" -ServerName $servername -FirewallRuleName $ruleName -StartIpAddress $ip -EndIpAddress $ip
+    $azcmd = "az sql server firewall-rule show -g $resourceGroupName --server $servername --name $rulename"
+    $fw = Invoke-Asac-AzCommandLine -azCommandLine $azcmd |Out-Null
+    if ($fw -eq $null)
+    {
+        $azcmd = "az sql server firewall-rule create -g $resourceGroupName --server $servername --name $rulename --start-ip-address $startip --end-ip-address $endip"
     }
     else {
-        New-AzureRmSqlServerFirewallRule -ResourceGroupName "$resourceGroupName" -ServerName $servername -FirewallRuleName $ruleName -StartIpAddress $ip -EndIpAddress $ip
+        $azcmd = "az sql server firewall-rule update -g $resourceGroupName --server $servername --name $rulename --start-ip-address $startip --end-ip-address $endip"
     }
+
+    Invoke-Asac-AzCommandLine -azCommandLine $azcmd
+}
+
+function _Remove-Firewall-IP
+{
+    param
+    (
+        [string] $resourceGroupName,
+        [string] $servername,
+        [string] $rulename
+
+    )
+    $azcmd = "az sql server firewall-rule delete -g $resourceGroupName --server $servername --name $rulename"
+    Invoke-Asac-AzCommandLine -azCommandLine $azcmd
 }
 
 function _Open_SQLFirewall {
     param
     (
         [string] $resourceGroupName,
-        [string] $servername
+        [string] $servername,
+        [string] $rulename
     )
-    $rulename = "PSrunner"
+
     $ip = Invoke-RestMethod http://ipinfo.io/json | Select -exp ip
-    $azcmd = "az sql server firewall-rule create -g $resourceGroupName --server $servername --name $rulename --start-ip-address $ip --end-ip-address $ip"
-    Invoke-Asac-AzCommandLine -azCommandLine $azcmd
+    _Add-Firewall-IP -resourceGroupName $resourceGroupName -servername $servername -rulename $rulename -startip $ip -endip $ip
 }
 
 function _Close_SQLFirewall {
     param
     (
         [string] $resourceGroupName,
-        [string] $servername
+        [string] $servername,
+        [string] $rulename
     )
-    $rulename = "PSrunner"
     $ip = Invoke-RestMethod http://ipinfo.io/json | Select -exp ip
-    $azcmd = "az sql server firewall-rule delete -g $resourceGroupName --server $servername --name $rulename"
-    Invoke-Asac-AzCommandLine -azCommandLine $azcmd
+    _Remove-Firewall-IP -resourceGroupName $resourceGroupName -servername $servername -rulename $rulename
 }
 function New-Asac-SQLServer {
     param
@@ -321,6 +337,11 @@ function Process-Asac-SQLServer {
     #first update the AD-ADMIN
     $result = Invoke-Asac-AzCommandLine -azCommandLine "az sql server ad-admin create --display-name ""$($sqlConfigured.'adadmins'[0].userPrincipal)"" --object-id $($sqlConfigured.'adadmins'.principalId) --server-name $($sqlConfigured.sqlservername) -g $resourcegroupname"
     
+    #process Firewall ports. 
+    foreach($fwp in $sqlConfigured.firewallports)
+    {
+        _Add-Firewall-IP -resourceGroupName $resourcegroupname -servername $sqlservername -rulename $fwp.rulename -startip $fwp.startip -endip $fwp.endip
+    }
 }
 
 
@@ -336,4 +357,5 @@ function Rotate-Asac-SQLServerPassword {
     #since we know the keyvault and the sql, we can rotate password and update keyvault..
 }
 
-Get-Asac-AllSQLServers -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -outputPath .\rvoazure -centralkeyvault asackeyvault 
+#Get-Asac-AllSQLServers -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -outputPath .\rvoazure -centralkeyvault asackeyvault 
+Process-Asac-SQLServer -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -basePath .\rvoazure
