@@ -12,13 +12,6 @@ function Get-Asac-Keyvault {
 
     $keyvault = Invoke-Asac-AzCommandLine -azCommandLine "az keyvault show -n $($keyvaultname) --output json"
 
-    # $properties = [ordered]@{
-    #     enableSoftDelete = $keyvault.properties.enableSoftDelete
-    #     enabledForDeployment = $keyvault.properties.enabledForDeployment
-    #     enabledForDiskEncryption = $keyvault.properties.enabledForDiskEncryption
-    #     enabledForTemplateDeployment = $keyvault.properties.enabledForTemplateDeployment
-    # }
-
     $accessPoliciesArray = @()
     foreach($accessPolicy in $keyvault.properties.accessPolicies){
         $accessPolicy.PSObject.Properties.Remove('tenantId')
@@ -53,5 +46,35 @@ function Get-Asac-AllKeyvaults {
     foreach ($keyvault in $keyvaults) {
         Get-Asac-Keyvault -name $keyvault.name -outputPath $outputPath
     }
+}
+
+function Process-Asac-Keyvault {
+    param
+    (
+        [string] $name,
+        [string] $path
+    )
+
+    $path = _Get-Asac-OutputPath -outputPath $path
+
+    $path = Join-Path $path -ChildPath "kv"
+    $file = Join-Path $path -ChildPath "kv.$($name).yml"
+    $yamlContent = Get-Content -Path $file -Raw
+    $kvConfigured = ConvertFrom-Yaml $yamlContent
+
+    $keyvault = Invoke-Asac-AzCommandLine -azCommandLine "az keyvault show -n $($name) --output json"
+
+    #1 for each object id check if exist
+    #true
+        #check if permissions are the same
+        #true
+            #nothing
+        #false
+            #update
+
+    #false
+        #add
+
+    #delete all object id's not in the kv file
 }
 
