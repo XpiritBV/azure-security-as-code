@@ -76,14 +76,12 @@ function _GetSQLDBDictionary {
 function _GetSQLDBUsersAndRolesDict {
     param
     (
-        [string] $sqlusername,
-        [string] $rolename
+        [string] $sqlusername
     )
 
     $sqluserDict = [ordered]@{sqluser = $sqlusername
-        rolename = $rolename
-        keyvaulname = "Undefined"
-        secretname = "Undefined"
+        keyvaultname = "fill in keyvault"
+        secretname = "fill in secretname"
     }
 
     return $sqluserDict
@@ -106,51 +104,51 @@ WHERE su.islogin=1
 AND su.name <> 'dbo' 
 AND su.name <> 'guest'
 AND su.sid  is not null
+ORDER BY su.uid
 '@
 
     $ds = _Execute-Query -sql $sqlgetusers -servername $servername -dbname $dbname -username $username -password $password -isIntegrated $false
 
     $userArray = @()    
-
+    $rolesArray = @()    
+    $previousUser = ""
+    $counter = 0
     foreach ($Row in $ds.Tables[0].Rows) { 
-    
-        _GetSQLDBUsersAndRolesDict -sqlusername $($Row.username) -rolename $($Row.rolename)
-        $userArray += $userArray
-    }
-
-}
-
-function _Get-Asac-AllSQLDatabasesArray {
-    param
-    (
-        [string] $sqlservername,
-        [string] $username,
-        [string] $password,
-        [string] $resourcegroupname
-    )
-
-    _Open_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername -rulename "PSRunner" | Out-Null
-    $databases = Invoke-Asac-AzCommandLine -azCommandLine "az sql db list --server $($sqlservername) --resource-group $($resourcegroupname) --output json"
-    $dbArray = @()
-    foreach ($db in $databases) {
-        if ($db.name -eq "master") {
-            continue
-        }
-        $dbDict = _GetSQLDBDictionary -databaseName $db.name
-
-        #Now get all the users in the database...
+        $counter++
+        $currentUser = $($Row.username)
         
-        $usersAndRoles = _QuerySQLUsersRoles -servername $sqlservername -dbname $db.name -username $username -password $password -isIntegrated $false 
-        $dbDict.Add('users', $usersAndRoles)
-        $dbArray += $dbDict
+        if ($currentUser -ne $previousUser)
+        {
+            if ($counter -ne 1)
+            {
+                #new user so complete the dictionary, except when it is the first time, then it is always the case
+                $currentUserDict  = _GetSQLDBUsersAndRolesDict -sqlusername $($previousUser)
+                $currentUserDict.Add('roles', $rolesArray)
+                $rolesArray = @()    
+                $userArray += $currentUserDict
+            }
+            
+            $previousUser = $currentUser
+            $rolesArray += $($Row.rolename)
+            
+            
+        }
+        else 
+        {
+            # user did not change.. Only role
+            $rolesArray += $Row.rolename
+        }
+        
     }
-    _Close_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername -rulename "PSrunner" | Out-Null
+    $currentUserDict  = _GetSQLDBUsersAndRolesDict -sqlusername $($previousUser)
+    $currentUserDict.Add('roles', $rolesArray)
+    $userArray += $currentUserDict
 
-    return $dbArray
+    return $userArray
 }
 
-function _Add-Firewall-IP
-{
+
+function _Add-Firewall-IP {
     param
     (
         [string] $resourceGroupName,
@@ -162,8 +160,7 @@ function _Add-Firewall-IP
     )
     $azcmd = "az sql server firewall-rule show -g $resourceGroupName --server $servername --name $rulename"
     $fw = Invoke-Asac-AzCommandLine -azCommandLine $azcmd |Out-Null
-    if ($fw -eq $null)
-    {
+    if ($fw -eq $null) {
         $azcmd = "az sql server firewall-rule create -g $resourceGroupName --server $servername --name $rulename --start-ip-address $startip --end-ip-address $endip"
     }
     else {
@@ -173,8 +170,7 @@ function _Add-Firewall-IP
     Invoke-Asac-AzCommandLine -azCommandLine $azcmd
 }
 
-function _Remove-Firewall-IP
-{
+function _Remove-Firewall-IP {
     param
     (
         [string] $resourceGroupName,
@@ -261,9 +257,9 @@ function Get-Asac-SQLServer {
     
     $sqlDict = _GetSQLServerDictionary -sqlservername  $($sql.name) -sqladminlogin "$($sql.administratorLogin)"
 
-    #$sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "<fill in keyname or empty when using AAD>" `
-    #    -keyvaultname "<fill in keyvaultname or empty when using AAD>" `
-    #   -keyvaultresourcegroup "<fill in resourcegroupname or empty when using AAD>"
+    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "fill in keyname or empty when using AAD" `
+        -keyvaultname "fill in keyvaultname or empty when using AAD" `
+        -keyvaultresourcegroup "fill in resourcegroupname or empty when using AAD"
 
 
     $adadminArray = @()
@@ -285,15 +281,17 @@ function Get-Asac-SQLServer {
 
     $pw = _Get-KeyVaultSecret -keyvaultname $centralkeyvault -secretname "$($sqlservername)-adminpw"
     
-    $dbArray = _Get-Asac-AllSQLDatabasesArray -sqlservername $sqlservername -username $sql.administratorLogin -resourcegroupname $resourcegroupname -password $pw
-    #$sqlDict.Add('sqladminpassword', $sqlpasswordDict)
+    $sqlDict.Add('sqladminpassword', $sqlpasswordDict)
     $sqlDict.Add('adadmins', $adadminArray)
     $sqlDict.Add('firewallports', $firewallArray)
-    $sqlDict.Add('databases', $dbArray)
+    
     
     $path = Join-Path $outputPath -ChildPath "sql"
     New-Item $path -Force -ItemType Directory
-    $filePath = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
+    $path = Join-Path $path -ChildPath "$sqlservername"
+    New-Item $path -Force -ItemType Directory
+
+    $filePath = Join-Path $path -ChildPath "sqlsrv.$($sqlservername).yml"
     Write-Host $filePath
     ConvertTo-YAML $sqlDict > $filePath
 }
@@ -317,6 +315,49 @@ function Get-Asac-AllSQLServers {
     }
 }
 
+function Get-Asac-AllSQLDatabases {
+    param
+    (
+        [string] $sqlservername,
+        [string] $resourcegroupname,
+        [string] $outputpath
+    )
+    
+    #Set Paths
+    $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
+    $path = Join-Path $outputPath -ChildPath "sql"
+    New-Item $path -Force -ItemType Directory
+    $path = Join-Path $path -ChildPath "$sqlservername"
+    New-Item $path -Force -ItemType Directory
+
+    $sqlsrvfile = Join-Path $path -ChildPath "sqlsrv.$($sqlservername).yml"
+
+    #Now we know the path, search for the SQL Server file to get some data 
+    $sqlsrvyamlContent = Get-Content -Path $sqlsrvfile -Raw
+    $sqlConfigured = ConvertFrom-Yaml $sqlsrvyamlContent
+    $sqlserveradminpw = _Get-KeyVaultSecret -keyvaultname $sqlConfigured.sqladminpassword.keyvaultname -secretname $sqlConfigured.sqladminpassword.secretkey
+
+    #Open SQL Firewall with client IP to be able to execute SQL
+    _Open_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername -rulename "PSRunner" | Out-Null
+    $databases = Invoke-Asac-AzCommandLine -azCommandLine "az sql db list --server $($sqlservername) --resource-group $($resourcegroupname) --output json"
+   
+    foreach ($db in $databases) {
+        if ($db.name -eq "master") {
+            continue
+        }
+        $dbDict = _GetSQLDBDictionary -databaseName $db.name
+
+        #Now get all the users in the database...
+        $usersAndRoles = _QuerySQLUsersRoles -servername $sqlservername -dbname $db.name -username $sqlConfigured.sqladminlogin -password $sqlserveradminpw -isIntegrated $false 
+        $dbDict.Add('users', $usersAndRoles)
+
+        $filePath = Join-Path $path -ChildPath "sqldb.$($db.name).yml"
+        ConvertTo-YAML $dbDict > $filePath            
+
+    }
+    _Close_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername -rulename "PSRunner" | Out-Null
+}
+
 function Process-Asac-SQLServer {
     param
     (
@@ -330,8 +371,13 @@ function Process-Asac-SQLServer {
         $basePath = $PSScriptRoot
     }
 
+    
     $path = Join-Path $basePath -ChildPath "sql"
-    $file = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
+    New-Item $path -Force -ItemType Directory
+    $path = Join-Path $path -ChildPath "$sqlservername"
+    New-Item $path -Force -ItemType Directory
+
+    $file = Join-Path $path -ChildPath "sqlsrv.$($sqlservername).yml"
     $yamlContent = Get-Content -Path $file -Raw
     $sqlConfigured = ConvertFrom-Yaml $yamlContent
 
@@ -340,15 +386,13 @@ function Process-Asac-SQLServer {
     $result = Invoke-Asac-AzCommandLine -azCommandLine "az sql server ad-admin create --display-name ""$($sqlConfigured.'adadmins'[0].userPrincipal)"" --object-id $($sqlConfigured.'adadmins'.principalId) --server-name $($sqlConfigured.sqlservername) -g $resourcegroupname"
     
     #process Firewall ports. 
-    foreach($fwp in $sqlConfigured.firewallports)
-    {
+    foreach ($fwp in $sqlConfigured.firewallports) {
         _Add-Firewall-IP -resourceGroupName $resourcegroupname -servername $sqlservername -rulename $fwp.rulename -startip $fwp.startip -endip $fwp.endip
     }
 
     #process Firewall ports. 
-    foreach($db in $sqlConfigured.databases)
-    {
-        foreach($u in $db.users) {
+    foreach ($db in $sqlConfigured.databases) {
+        foreach ($u in $db.users) {
             
             $userpassword = New-RandomComplexPassword -length 15
             $mastersql = Get-Content -Path .\templatescripts\sql.master.sql -Raw
@@ -381,4 +425,5 @@ function Rotate-Asac-SQLServerPassword {
 }
 
 #Get-Asac-AllSQLServers -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -outputPath .\rvoazure -centralkeyvault asackeyvault 
-Process-Asac-SQLServer -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -basePath .\rvoazure
+#Process-Asac-SQLServer -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -basePath .\rvoazure
+Get-Asac-AllSQLDatabases -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -outputpath .\rvoazure
