@@ -44,10 +44,10 @@ function _Execute-NonQuery
     
 
     if ($isIntegrated)  {
-        $conn=new-object data.sqlclient.sqlconnection "Server=$($servername);database=$($dbname);Integrated Security=True"
+        $conn=new-object data.sqlclient.sqlconnection "Server=$($servername).database.windows.net;database=$($dbname);Integrated Security=True"
     }
     else {
-        $conn = new-object data.sqlclient.sqlconnection "server=$($servername);database=$($dbname);Integrated Security=false;User ID=$($username);Password=$($password);";
+        $conn = new-object data.sqlclient.sqlconnection "server=$($servername).database.windows.net;database=$($dbname);Integrated Security=false;User ID=$($username);Password=$($password);";
     }
 
     $cmd=New-Object System.Data.SqlClient.SqlCommand($sql,$conn)
@@ -64,7 +64,7 @@ function _Execute-NonQuery
     }
     catch
     {
-        Write-Error "Error executing SQL Statement"
+        Write-Error "Error executing SQL Statement. $ErrorMessage"
     }
     finally
     {
@@ -141,4 +141,11 @@ function _Get-KeyVaultSecret
     
 
     return $secret.value
+}
+
+Function New-RandomComplexPassword ($length=8)
+{
+    $Assembly = Add-Type -AssemblyName System.Web
+    $password = [System.Web.Security.Membership]::GeneratePassword($length,2)
+    return $password
 }

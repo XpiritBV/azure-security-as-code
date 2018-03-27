@@ -82,6 +82,8 @@ function _GetSQLDBUsersAndRolesDict {
 
     $sqluserDict = [ordered]@{sqluser = $sqlusername
         rolename = $rolename
+        keyvaulname = "Undefined"
+        secretname = "Undefined"
     }
 
     return $sqluserDict
@@ -296,7 +298,6 @@ function Get-Asac-SQLServer {
     ConvertTo-YAML $sqlDict > $filePath
 }
 
-
 function Get-Asac-AllSQLServers { 
     param
     (
@@ -321,6 +322,7 @@ function Process-Asac-SQLServer {
     (
         [string] $sqlservername,
         [string] $resourcegroupname,
+        [string] $centralkeyvault,
         [string] $basePath
     )
 
@@ -341,6 +343,27 @@ function Process-Asac-SQLServer {
     foreach($fwp in $sqlConfigured.firewallports)
     {
         _Add-Firewall-IP -resourceGroupName $resourcegroupname -servername $sqlservername -rulename $fwp.rulename -startip $fwp.startip -endip $fwp.endip
+    }
+
+    #process Firewall ports. 
+    foreach($db in $sqlConfigured.databases)
+    {
+        foreach($u in $db.users) {
+            
+            $userpassword = New-RandomComplexPassword -length 15
+            $mastersql = Get-Content -Path .\templatescripts\sql.master.sql -Raw
+            $mastersql = $mastersql -replace "@sqlusername", "$($u.sqluser)"
+            $mastersql = $mastersql -replace "@sqlpassword", "$($userpassword)"
+
+            $dbsql = Get-Content -Path .\templatescripts\sql.db.sql -Raw
+            $dbsql = $dbsql -replace "@sqlusername", "$($u.sqluser)"
+            $dbsql = $dbsql -replace "@sqlrole", "$($u.sqlrole)"
+
+            $masterpw = _Get-KeyVaultSecret -keyvaultname $centralkeyvault -secretname "$($sqlservername)-adminpw"
+            
+            _Execute-NonQuery -sql $mastersql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+            _Execute-NonQuery -sql $dbsql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+        }
     }
 }
 
