@@ -13,7 +13,5 @@ RUN apt-get install azure-cli
 RUN apt-get update
 RUN apt-get -y install jq
 
-#Install Yaml parsing module
-RUN pwsh -c Install-Module powershell-yaml -f
 RUN pwsh
 

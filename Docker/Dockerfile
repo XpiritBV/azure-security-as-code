@@ -1,6 +1,7 @@
-FROM powershell-azurecli
+FROM xpiritbv/powershell-azurecli
 
-COPY *.yml /yml/
-COPY *.ps1 /ps/
+#Install Yaml parsing module
+RUN pwsh -c Install-Module powershell-yaml -f
+
 RUN pwsh
 
