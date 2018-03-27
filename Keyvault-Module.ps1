@@ -25,7 +25,7 @@ function Get-Asac-Keyvault {
     $kvDict.Add('accessPolicies',$accessPoliciesArray)
  
     $path = Join-Path $outputPath -ChildPath "kv"
-    $folder = New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
     $filePath = Join-Path $path -ChildPath "kv.$($keyvaultname).yml"
     ConvertTo-YAML $kvDict > $filePath
 }

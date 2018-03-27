@@ -33,7 +33,7 @@ function Get-Asac-ResourceGroup
     $rgDict.Add('rbac',$rbacArray)
 
     $path = Join-Path $outputPath -ChildPath "rg"
-    $folder = New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
     $filePath = Join-Path $path -ChildPath "rg.$($resourcegroup).yml"
     Write-Host $filePath
     ConvertTo-YAML $rgDict > $filePath
