@@ -235,7 +235,7 @@ function New-Asac-SQLServer {
     $sqlDict.Add('firewallports', $firewallArray)
     
     $path = Join-Path $outputPath -ChildPath "sql"
-    New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
     $filePath = Join-Path $path -ChildPath "sql.$($sqlservername).yml"
     Write-Host $filePath
     ConvertTo-YAML $sqlDict > $filePath                               
@@ -246,7 +246,6 @@ function Get-Asac-SQLServer {
     (
         [string] $sqlservername,
         [string] $resourcegroupname,
-        [string] $centralkeyvault,
         [string] $outputPath
         
     )
@@ -279,7 +278,7 @@ function Get-Asac-SQLServer {
         $firewallArray += $firewallDict
     }
 
-    $pw = _Get-KeyVaultSecret -keyvaultname $centralkeyvault -secretname "$($sqlservername)-adminpw"
+    
     
     $sqlDict.Add('sqladminpassword', $sqlpasswordDict)
     $sqlDict.Add('adadmins', $adadminArray)
@@ -287,9 +286,9 @@ function Get-Asac-SQLServer {
     
     
     $path = Join-Path $outputPath -ChildPath "sql"
-    New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
     $path = Join-Path $path -ChildPath "$sqlservername"
-    New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
 
     $filePath = Join-Path $path -ChildPath "sqlsrv.$($sqlservername).yml"
     Write-Host $filePath
@@ -299,7 +298,6 @@ function Get-Asac-SQLServer {
 function Get-Asac-AllSQLServers { 
     param
     (
-        [string] $centralkeyvault,
         [string] $outputPath
     )
 
@@ -311,7 +309,8 @@ function Get-Asac-AllSQLServers {
 
 
     foreach ($sqls in $sqlservs) {
-        Get-Asac-SQLServer -sqlservername $sqls.name  -resourcegroupname $sqls.resourceGroup -outputPath $outputPath -centralkeyvault $centralkeyvault -secretname $secretname
+        Write-Host "Processing $($sqls.name)"
+        Get-Asac-SQLServer -sqlservername $sqls.name  -resourcegroupname $sqls.resourceGroup -outputPath $outputPath -secretname $secretname
     }
 }
 
@@ -326,9 +325,9 @@ function Get-Asac-AllSQLDatabases {
     #Set Paths
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
     $path = Join-Path $outputPath -ChildPath "sql"
-    New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
     $path = Join-Path $path -ChildPath "$sqlservername"
-    New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
 
     $sqlsrvfile = Join-Path $path -ChildPath "sqlsrv.$($sqlservername).yml"
 
@@ -363,7 +362,6 @@ function Process-Asac-SQLServer {
     (
         [string] $sqlservername,
         [string] $resourcegroupname,
-        [string] $centralkeyvault,
         [string] $basePath
     )
 
@@ -373,9 +371,9 @@ function Process-Asac-SQLServer {
 
     
     $path = Join-Path $basePath -ChildPath "sql"
-    New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
     $path = Join-Path $path -ChildPath "$sqlservername"
-    New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
 
     $file = Join-Path $path -ChildPath "sqlsrv.$($sqlservername).yml"
     $yamlContent = Get-Content -Path $file -Raw
@@ -390,28 +388,73 @@ function Process-Asac-SQLServer {
         _Add-Firewall-IP -resourceGroupName $resourcegroupname -servername $sqlservername -rulename $fwp.rulename -startip $fwp.startip -endip $fwp.endip
     }
 
-    #process Firewall ports. 
-    foreach ($db in $sqlConfigured.databases) {
-        foreach ($u in $db.users) {
-            
-            $userpassword = New-RandomComplexPassword -length 15
-            $mastersql = Get-Content -Path .\templatescripts\sql.master.sql -Raw
-            $mastersql = $mastersql -replace "@sqlusername", "$($u.sqluser)"
-            $mastersql = $mastersql -replace "@sqlpassword", "$($userpassword)"
-
-            $dbsql = Get-Content -Path .\templatescripts\sql.db.sql -Raw
-            $dbsql = $dbsql -replace "@sqlusername", "$($u.sqluser)"
-            $dbsql = $dbsql -replace "@sqlrole", "$($u.sqlrole)"
-
-            $masterpw = _Get-KeyVaultSecret -keyvaultname $centralkeyvault -secretname "$($sqlservername)-adminpw"
-            
-            _Execute-NonQuery -sql $mastersql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
-            _Execute-NonQuery -sql $dbsql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
-        }
-    }
 }
 
+function Process-Asac-SQLDatabase {
+    param
+    (
+        [string] $sqlservername,
+        [string] $resourcegroupname,
+        [string] $basePath
+    )
 
+    if ($basePath -eq "" -or $basePath -eq $null) {
+        $basePath = $PSScriptRoot
+    }
+
+    $path = Join-Path $basePath -ChildPath "sql"
+    New-Item $path -Force -ItemType Directory | Out-Null
+    $path = Join-Path $path -ChildPath "$sqlservername"
+    New-Item $path -Force -ItemType Directory | Out-Null
+
+    $file = Join-Path $path -ChildPath "sqlsrv.$($sqlservername).yml"
+    $yamlContent = Get-Content -Path $file -Raw
+    $sqlConfigured = ConvertFrom-Yaml $yamlContent
+
+    Get-ChildItem $path -Filter sqldb.*.yml | 
+    Foreach-Object {
+        $dbcontent = Get-Content $_.FullName -Raw
+        $dbConfigured = ConvertFrom-Yaml $dbcontent
+    
+            foreach ($u in $dbConfigured.users) {
+                
+                $userpassword = New-RandomComplexPassword -length 15
+                $mastersql = Get-Content -Path .\templatescripts\sql.master.sql -Raw
+                $mastersql = $mastersql -replace "@sqlusername", "$($u.sqluser)"
+                $mastersql = $mastersql -replace "@sqlpassword", "$($userpassword)"
+    
+                $dbsql = Get-Content -Path .\templatescripts\sql.db.sql -Raw
+                $dbsql = $dbsql -replace "@sqlusername", "$($u.sqluser)"
+                $masterpw = _Get-KeyVaultSecret -keyvaultname $($sqlConfigured.sqladminpassword.keyvaultname) -secretname "$($sqlConfigured.sqladminpassword.secretkey)"
+                
+                _Execute-NonQuery -sql $mastersql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+                _Execute-NonQuery -sql $dbsql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+
+                foreach($r in $u.roles) {
+                    $dbrolesql = Get-Content -Path .\templatescripts\sql.dbrole.sql -Raw
+                    $dbrolesql = $dbsql -replace "@sqlusername", "$($u.sqluser)"
+                    $dbrolesql = $dbsql -replace "@sqlrole", "$($r)"
+                    _Execute-NonQuery -sql $dbsql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+                }
+
+
+                if ($u.keyvaultname -ne "" -and $u.secretname -ne "") 
+                {
+                    $existingSecret = _Set-KeyVaultSecret -keyvaultname $($u.keyvaultname) -secretname "$($u.keyvaultname)" 
+                    if ($existingSecret -eq $null)
+                    {
+                        _Set-KeyVaultSecret -keyvaultname $($u.keyvaultname) -secretname "$($u.keyvaultname)" -password $userpassword
+                    }
+                    else 
+                    {
+                        Write-Host "Secret exists in keyvault. Value not updated"
+                    }
+                }
+            }
+    
+
+}
+}
 
 function Rotate-Asac-SQLServerPassword {
     param
@@ -426,4 +469,5 @@ function Rotate-Asac-SQLServerPassword {
 
 #Get-Asac-AllSQLServers -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -outputPath .\rvoazure -centralkeyvault asackeyvault 
 #Process-Asac-SQLServer -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -basePath .\rvoazure
-Get-Asac-AllSQLDatabases -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -outputpath .\rvoazure
+#Get-Asac-AllSQLDatabases -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -outputpath .\rvoazure
+#Process-Asac-SQLDatabase -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -basePath .\rvoazure

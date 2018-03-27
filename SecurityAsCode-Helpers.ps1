@@ -137,12 +137,21 @@ function _Get-KeyVaultSecret
 
     $cmdLine = "az keyvault secret show --vault-name $keyvaultname --name $secretname"
     $secret = Invoke-Asac-AzCommandLine -azCommandLine $cmdLine
-
-    
-
     return $secret.value
 }
+function _Set-KeyVaultSecret
+{
+    param
+    (
+        [string] $keyvaultname,
+        [string] $secretname,
+        [string] $password
+    )
 
+    $cmdLine = "az keyvault secret set --vault-name $keyvaultname --name $secretname --value ""$password"""
+    $secret = Invoke-Asac-AzCommandLine -azCommandLine $cmdLine
+    
+}
 Function New-RandomComplexPassword ($length=8)
 {
     $Assembly = Add-Type -AssemblyName System.Web
