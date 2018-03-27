@@ -32,7 +32,7 @@ function Get-Asac-SecurityGroup
 
 
     $path = Join-Path $outputPath -ChildPath "ad-groups"
-    New-Item -ItemType Directory -Path $path -Force
+    New-Item -ItemType Directory -Path $path -Force | Out-Null
     $file = Join-Path $path -ChildPath "$($securityGroup).yml"
     ConvertTo-YAML $rgDict > $file
 }

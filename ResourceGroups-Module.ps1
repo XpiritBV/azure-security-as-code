@@ -33,7 +33,7 @@ function Get-Asac-ResourceGroup
     $rgDict.Add('rbac',$rbacArray)
 
     $path = Join-Path $outputPath -ChildPath "rg"
-    New-Item $path -Force -ItemType Directory
+    New-Item $path -Force -ItemType Directory | Out-Null
     $filePath = Join-Path $path -ChildPath "rg.$($resourcegroup).yml"
     Write-Host $filePath
     ConvertTo-YAML $rgDict > $filePath
@@ -99,8 +99,8 @@ function Process-Asac-ResourceGroup
         
         if ($foundUser -eq $null)
         {
-            #member found with name and same role
-            #nothing to do
+            #member not found with name and same role
+            #add role assignment
             Write-Host "[$($upn.userPrincipal)] not found in role [$($upn.role)]. Add user" -ForegroundColor Yellow
             Invoke-Asac-AzCommandLine -azCommandLine "az role assignment create --role $($upn.role) --assignee $($principalID) --resource-group $($resourcegroup)"
         }
