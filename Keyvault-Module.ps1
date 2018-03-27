@@ -11,7 +11,7 @@ function Get-Asac-Keyvault {
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
     $keyvault = Invoke-Asac-AzCommandLine -azCommandLine "az keyvault show -n $($keyvaultname) --output json"
-
+ 
     $accessPoliciesArray = @()
     foreach($accessPolicy in $keyvault.properties.accessPolicies){
         $accessPolicy.PSObject.Properties.Remove('tenantId')
@@ -22,7 +22,7 @@ function Get-Asac-Keyvault {
     $kvDict = [ordered]@{}
     $kvDict.Add('keyvaultname',$keyvaultname)
     $kvDict.Add('accessPolicies',$accessPoliciesArray)
-
+ 
     $path = Join-Path $outputPath -ChildPath "kv"
     New-Item $path -Force -ItemType Directory
     $filePath = Join-Path $path -ChildPath "kv.$($keyvaultname).yml"
@@ -64,17 +64,58 @@ function Process-Asac-Keyvault {
 
     $keyvault = Invoke-Asac-AzCommandLine -azCommandLine "az keyvault show -n $($name) --output json"
 
-    #1 for each object id check if exist
-    #true
-        #check if permissions are the same
-        #true
-            #nothing
-        #false
-            #update
+    foreach($accessPolicy in $kvConfigured.accessPolicies){
+        $existingPolicy = $keyvault.properties.accessPolicies | Where-Object {($_.objectId -eq $accessPolicy.objectId)}
 
-    #false
-        #add
+        if($existingPolicy -ne $null){
+
+            if($existingPolicy.applicationId -eq $accessPolicy.applicationId -or ($existingPolicy.applicationId -eq $null -and $accessPolicy.applicationId -eq "")){
+
+                $keys= Compare-Object -ReferenceObject $accessPolicy.permissions.keys -DifferenceObject $existingPolicy.permissions.keys -PassThru
+                $certificates= Compare-Object -ReferenceObject $accessPolicy.permissions.certificates -DifferenceObject $existingPolicy.permissions.certificates -PassThru
+                $secrets = Compare-Object -ReferenceObject $accessPolicy.permissions.secrets -DifferenceObject $existingPolicy.permissions.secrets -PassThru
+                if(($keys -eq $null) -and
+                   ($certificates -eq $null) -and
+                   ($secrets -eq $null)){
+                    #all the same do nothing
+                    Write-Host "Access Policy: [$($accessPolicy.objectId)] found and is exactly the same" -ForegroundColor Green
+                }
+                else{
+                    #access policy is not the same. update it
+                    Write-Host "Access Policy permissions: [$($accessPolicy.objectId)] found but different" -ForegroundColor Yellow
+                    $azCommand = "az keyvault set-policy -n $name --object-id $($accessPolicy.objectId) "
+                    $azCommand += "--certificate-permissions $($accessPolicy.permissions.certificates) "
+                    $azCommand += "--key-permissions $($accessPolicy.permissions.keys) "
+                    $azCommand += "--secret-permissions $($accessPolicy.permissions.secrets)"
+
+                    $result = Invoke-Asac-AzCommandLine -azCommandLine $azCommand
+                }                
+            }
+            else{
+                #current application id needs to be updated
+                Write-Host "Access Policy: [$($accessPolicy.objectId)] found and is different" -ForegroundColor Yellow
+            }
+            
+        }
+        else{
+            #Add policy because it does not exist
+            Write-Host "Access Policy: [$($accessPolicy.objectId)] not found" -ForegroundColor Yellow
+            $azCommand = "az keyvault set-policy -n $name --object-id $($accessPolicy.objectId) "
+            $azCommand += "--certificate-permissions $($accessPolicy.permissions.certificates) "
+            $azCommand += "--key-permissions $($accessPolicy.permissions.keys) "
+            $azCommand += "--secret-permissions $($accessPolicy.permissions.secrets)"
+
+            $result = Invoke-Asac-AzCommandLine -azCommandLine $azCommand
+        }
+    }
 
     #delete all object id's not in the kv file
+    foreach($accessPolicy in $keyvault.properties.accessPolicies){
+        $yamlPolicy = $kvConfigured.accessPolicies | Where-Object {($_.objectId -eq $accessPolicy.objectId)}
+        if($yamlPolicy -eq $null){
+            Write-Host "Access Policy: [$($accessPolicy.objectId)] not found in yaml. Delete it" -ForegroundColor Yellow
+            $result = Invoke-Asac-AzCommandLine -azCommandLine "az keyvault delete-policy -n $name --object-id $($accessPolicy.objectId) "
+        }
+    }
 }
 
