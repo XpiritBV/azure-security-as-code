@@ -1,3 +1,8 @@
+#Import Helpers
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$here/SecurityAsCode-Helpers.ps1"
+
+
 function Get-Asac-SecurityGroup
 {
     param
@@ -101,3 +106,5 @@ function Get-Asac-AllSecurityGroups
         Get-Asac-SecurityGroup -securityGroup $sg.displayName -outputPath $outputPath
     }
 }
+
+Export-ModuleMember -Function Get-Asac-SecurityGroup, Process-Asac-SecurityGroup, Get-Asac-AllSecurityGroups

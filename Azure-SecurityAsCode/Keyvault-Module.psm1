@@ -1,5 +1,7 @@
 #Import Helpers
-. .\SecurityAsCode-Helpers.ps1
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$here/SecurityAsCode-Helpers.ps1"
+
 
 function Get-Asac-Keyvault {
     param
@@ -112,3 +114,4 @@ function Process-Asac-Keyvault {
     }
 }
 
+Export-ModuleMember -Function Get-Asac-Keyvault, Get-Asac-AllKeyvaults, Process-Asac-Keyvault
