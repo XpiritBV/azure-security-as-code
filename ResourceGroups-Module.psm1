@@ -1,5 +1,7 @@
 #Import Helpers
-. .\SecurityAsCode-Helpers.ps1
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$here/SecurityAsCode-Helpers.ps1"
+
 
 function Get-Asac-ResourceGroup
 {
@@ -123,3 +125,6 @@ function Process-Asac-ResourceGroup
             }
     }
 
+
+
+Export-ModuleMember -Function Get-Asac-ResourceGroup, Get-Asac-AllResourceGroups, Process-Asac-ResourceGroup
