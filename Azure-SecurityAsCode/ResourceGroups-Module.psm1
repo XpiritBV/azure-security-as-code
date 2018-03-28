@@ -50,7 +50,6 @@ function Get-Asac-AllResourceGroups
     )
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
-
     $rgs = Invoke-Asac-AzCommandLine -azCommandLine "az group list --output json"
 
 
