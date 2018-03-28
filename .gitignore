@@ -10,6 +10,7 @@
 *.sln.docstates
 ad-groups/
 rg/
+kv/
 rvoazure/
 damco/
 login.txt

@@ -1,15 +1,15 @@
-# azure-security-as-code
-Scripts to define your azure security governance as code and avoid manual settings of permissions and avoiding configuration drift
+![Azure Security as Code](./img/logo.png "Azure Security as Code")
+Azure Security as Code is a set of scripts to define your azure security governance as code and avoid manual settings of permissions and avoiding configuration drift.
 
 This library is created in a modular fashion where each module will deliver the functionality for security governance of a specific Azure resource type
 
 ### Current Azure resource types supported
 * Resource Groups
 * Security Groups
-
-### Future Azure resource types on backlog
 * Azure SQL
 * Keyvault
+
+### Future Azure resource types on backlog
 * Azure Datalake
 * Others
 
@@ -23,7 +23,7 @@ If you have preferences on other resource types let us known in the issues.
 ### Prerequisites
 * install yaml module needed to generate yaml outputs
 ```powershell
-Install-Module PSYaml -f
+Install-Module powershell-yaml
 ```
 
 * Login with Azure CLI and select your subscription
