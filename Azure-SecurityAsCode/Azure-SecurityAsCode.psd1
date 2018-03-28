@@ -12,7 +12,7 @@
 # RootModule = ''
 
 # Version number of this module.
-ModuleVersion = '0.0.1'
+ModuleVersion = '0.1.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -30,7 +30,7 @@ CompanyName = 'Xpirit BV'
 Copyright = '(c) Xpirit. All rights reserved.'
 
 # Description of the functionality provided by this module
-# Description = ''
+ Description = 'Azure Security as Code is a set of scripts to define your azure security governance as code and avoid manual settings of permissions and avoiding configuration drift.'
 
 # Minimum version of the PowerShell engine required by this module
 # PowerShellVersion = ''
@@ -67,7 +67,7 @@ Copyright = '(c) Xpirit. All rights reserved.'
 
 # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
  NestedModules = @('ResourceGroups-Module.psm1',
-                   'SecurityGroups-Module-psm1',
+                   'SecurityGroups-Module.psm1',
                    'Keyvault-Module.psm1')
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
