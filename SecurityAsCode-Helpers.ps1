@@ -3,11 +3,16 @@ function Invoke-Asac-AzCommandLine
 {
     param
     (
-        [string] $azCommandLine
+        [string] $azCommandLine,
+        [string] $RegEx,
+        [string] $ReplaceValue
     )
 
     $resultJson  = "$(Invoke-Expression $azCommandLine)"
-    $result = ConvertFrom-Json $resultJson 
+    if ($RegEx -ne "" -or $RegEx -ne $null) {
+        $resultJson = $resultJson -replace $RegEx, $ReplaceValue
+    }
+    $result = ConvertFrom-Json $resultJson
     
     return $result
 }
