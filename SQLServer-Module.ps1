@@ -18,14 +18,12 @@ function _GetSQLServerDictionary {
 function _GetSQLServerPasswordDictionary {
     param
     (
-        [string] $secretkey,
-        [string] $keyvaultname,
-        [string] $keyvaultresourcegroup
+        [string] $secretname,
+        [string] $keyvaultname
     )
 
-    $sqlpasswordDict = [ordered]@{ secretkey = $secretkey
+    $sqlpasswordDict = [ordered]@{ secretname = $secretname
         keyvaultname = $keyvaultname
-        keyvaultresourcegroup = $keyvaultresourcegroup
     }
 
 
@@ -80,8 +78,9 @@ function _GetSQLDBUsersAndRolesDict {
     )
 
     $sqluserDict = [ordered]@{sqluser = $sqlusername
-        keyvaultname = "fill in keyvault"
-        secretname = "fill in secretname"
+        keyvaultname = ""
+        secretname = ""
+        generatepassword = "false"
     }
 
     return $sqluserDict
@@ -211,7 +210,6 @@ function New-Asac-SQLServer {
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
     $sqlDict = _GetSQLServerDictionary -sqlservername  "sqlserv123 #SQL Server Name" -sqladminlogin "[generated] #username of SA when creating SQL Server"
-    #$sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "sql-bigboss #Keyname in keyvault" -keyvaultname"kvPlatform123 #Name of the keyvault where password resides" -keyvaultresourcegroup "rgTest123 #Name of the resource group where the keyvault resides"
 
     $adadminArray = @()
     for ($i = 0; $i -lt 2; $i++) {
@@ -253,9 +251,7 @@ function Get-Asac-SQLServer {
     
     $sqlDict = _GetSQLServerDictionary -sqlservername  $($sql.name) -sqladminlogin "$($sql.administratorLogin)"
 
-    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretkey "" `
-        -keyvaultname "" `
-        -keyvaultresourcegroup ""
+    $sqlpasswordDict = _GetSQLServerPasswordDictionary -secretname "" -keyvaultname "" 
 
 
     $adadminArray = @()
@@ -307,7 +303,7 @@ function Get-Asac-AllSQLServers {
 
     foreach ($sqls in $sqlservs) {
         Write-Host "Processing $($sqls.name)"
-        Get-Asac-SQLServer -sqlservername $sqls.name  -resourcegroupname $sqls.resourceGroup -outputPath $outputPath -secretname $secretname
+        Get-Asac-SQLServer -sqlservername $sqls.name  -resourcegroupname $sqls.resourceGroup -outputPath $outputPath 
     }
 }
 
@@ -348,7 +344,7 @@ function Get-Asac-AllSQLDatabases {
     $databases = Invoke-Asac-AzCommandLine -azCommandLine "az sql db list --server $($sqlservername) --resource-group $($resourcegroupname) --output json"
 
     if ($sqlConfigured.sqladminpassword.keyvaultname -ne "") {
-        $sqlserveradminpw = _Get-KeyVaultSecret -keyvaultname $sqlConfigured.sqladminpassword.keyvaultname -secretname $sqlConfigured.sqladminpassword.secretkey
+        $sqlserveradminpw = _Get-KeyVaultSecret -keyvaultname $sqlConfigured.sqladminpassword.keyvaultname -secretname $sqlConfigured.sqladminpassword.secretname
         #Open SQL Firewall with client IP to be able to execute SQL
         _Open_SQLFirewall -resourceGroupName $resourcegroupname -servername $sqlservername -rulename "PSRunner" | Out-Null
     }   
@@ -435,39 +431,60 @@ function Process-Asac-SQLDatabase {
         $dbConfigured = ConvertFrom-Yaml $dbcontent
     
         foreach ($u in $dbConfigured.users) {
-                
+
+            if ($u.sqluser -eq "") 
+            {
+                continue;
+            }
             $userpassword = New-RandomComplexPassword -length 15
+            #creates login (if not exist and updates the password)
             $mastersql = Get-Content -Path .\templatescripts\sql.master.sql -Raw
             $mastersql = $mastersql -replace "@sqlusername", "$($u.sqluser)"
             $mastersql = $mastersql -replace "@sqlpassword", "$($userpassword)"
-    
+
+            $masterupwsql = Get-Content -Path .\templatescripts\sql.master-updatepw.sql -Raw
+            $masterupwsql = $masterupwsql -replace "@sqlusername", "$($u.sqluser)"
+            $masterupwsql = $masterupwsql -replace "@sqlpassword", "$($userpassword)"
+            
+            $droprolesql = Get-Content -Path .\templatescripts\sql.dbrole-drop.sql -Raw
+            $droprolesql = $droprolesql -replace "@sqlusername", "$($u.sqluser)"
+
             $dbsql = Get-Content -Path .\templatescripts\sql.db.sql -Raw
             $dbsql = $dbsql -replace "@sqlusername", "$($u.sqluser)"
-            $masterpw = _Get-KeyVaultSecret -keyvaultname $($sqlConfigured.sqladminpassword.keyvaultname) -secretname "$($sqlConfigured.sqladminpassword.secretkey)"
+            $masterpw = _Get-KeyVaultSecret -keyvaultname $($sqlConfigured.sqladminpassword.keyvaultname) -secretname "$($sqlConfigured.sqladminpassword.secretname)"
                 
-            _Execute-NonQuery -sql $mastersql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
-            _Execute-NonQuery -sql $dbsql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+            _Execute-NonQuery -sql $mastersql -servername $sqlservername -dbname "master" -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+            _Execute-NonQuery -sql $dbsql -servername $sqlservername -dbname $($dbConfigured.databaseName) -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
 
+            if ($u.generatepassword -eq $true) {
+                _Execute-NonQuery -sql $masterupwsql -servername $sqlservername -dbname "master" -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+            }
+
+            _Execute-NonQuery -sql $droprolesql -servername $sqlservername -dbname $($dbConfigured.databaseName) -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+            
             foreach ($r in $u.roles) {
                 $dbrolesql = Get-Content -Path .\templatescripts\sql.dbrole.sql -Raw
-                $dbrolesql = $dbsql -replace "@sqlusername", "$($u.sqluser)"
-                $dbrolesql = $dbsql -replace "@sqlrole", "$($r)"
-                _Execute-NonQuery -sql $dbsql -servername $sqlservername -dbname $db.databaseName -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
+                $dbrolesql = $dbrolesql -replace "@sqlusername", "$($u.sqluser)"
+                $dbrolesql = $dbrolesql -replace "@sqlrole", "$($r)"
+                _Execute-NonQuery -sql $dbrolesql -servername $sqlservername -dbname $($dbConfigured.databaseName) -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
             }
 
 
-            if ($u.keyvaultname -ne "" -and $u.secretname -ne "") {
-                $existingSecret = _Set-KeyVaultSecret -keyvaultname $($u.keyvaultname) -secretname "$($u.keyvaultname)" 
+            if ($u.keyvaultname -ne "" -and $u.secretname -ne "" -and $u.generatepassword -eq $true) {
+                $existingSecret = _Get-KeyVaultSecret -keyvaultname $($u.keyvaultname) -secretname "$($u.keyvaultname)" 
                 if ($existingSecret -eq $null) {
-                    _Set-KeyVaultSecret -keyvaultname $($u.keyvaultname) -secretname "$($u.keyvaultname)" -password $userpassword
+                    _Set-KeyVaultSecret -keyvaultname $($u.keyvaultname) -secretname "$($u.keyvaultname)" -password "$($userpassword)"
                 }
-                else {
+                elseif ($u.generatepassword -eq $true)
+                {
+                    _Set-KeyVaultSecret -keyvaultname $($u.keyvaultname) -secretname "$($u.keyvaultname)" -password "$($userpassword)"
+                }
+                else
+                 {
                     Write-Host "Secret exists in keyvault. Value not updated"
                 }
             }
         }
-    
-
     }
 }
 
@@ -486,4 +503,5 @@ function Rotate-Asac-SQLServerPassword {
 #Get-Asac-AllSQLServers -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -outputPath .\rvoazure -centralkeyvault asackeyvault 
 #Process-Asac-SQLServer -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -basePath .\rvoazure
 #Get-Asac-AllSQLDatabases -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -outputpath .\rvoazure
-#Process-Asac-SQLDatabase -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -basePath .\rvoazure
+Process-Asac-SQLDatabase -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -basePath .\rvoazure
+#Get-Asac-AllSQLDatabases -outputpath .\rvoazure
