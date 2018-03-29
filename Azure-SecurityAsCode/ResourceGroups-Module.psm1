@@ -103,7 +103,7 @@ function Process-Asac-ResourceGroup
             #member not found with name and same role
             #add role assignment
             Write-Host "[$($upn.userPrincipal)] not found in role [$($upn.role)]. Add user" -ForegroundColor Yellow
-            Invoke-Asac-AzCommandLine -azCommandLine "az role assignment create --role $($upn.role) --assignee $($principalID) --resource-group $($resourcegroup)"
+            Invoke-Asac-AzCommandLine -azCommandLine "az role assignment create --role ""$($upn.role)"" --assignee $($principalID) --resource-group $($resourcegroup)"
         }
         else 
         {
@@ -120,7 +120,7 @@ function Process-Asac-ResourceGroup
             foreach ($as in $nonProcessed)
             {
                 Write-Host "Deleting [$($as.properties.principalName)] from role [$($as.properties.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
-                Invoke-Asac-AzCommandLine -azCommandLine "az role assignment delete --role $($as.properties.roleDefinitionName) --assignee $($as.properties.principalId) --resource-group $($resourcegroup)"
+                Invoke-Asac-AzCommandLine -azCommandLine "az role assignment delete --role ""$($as.properties.roleDefinitionName)"" --assignee $($as.properties.principalId) --resource-group $($resourcegroup)"
             }
     }
 

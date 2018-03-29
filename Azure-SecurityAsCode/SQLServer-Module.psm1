@@ -1,5 +1,6 @@
 #Import Helpers
-. .\SecurityAsCode-Helpers.ps1
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$here/SecurityAsCode-Helpers.ps1"
 
 function _GetSQLServerDictionary {
     param
