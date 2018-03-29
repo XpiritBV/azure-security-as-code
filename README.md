@@ -24,18 +24,13 @@ If you have preferences on other resource types let us known in the issues.
 ### Prerequisites
 * install yaml module needed to generate yaml outputs
 ```powershell
-Install-Module powershell-yaml
+Install-Module Azure-SecurityAsCode
 ```
 
 * Login with Azure CLI and select your subscription
 
 ```powershell
 az login
-```
-* import powershell script
-
-```powershell
-. .\resourcegroups-module.ps1
 ```
 
 ## Usage Resource Group Download ##
