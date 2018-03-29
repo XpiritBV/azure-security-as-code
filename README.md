@@ -33,6 +33,11 @@ Install-Module Azure-SecurityAsCode
 az login
 ```
 
+* Check available cmdlets
+```powershell
+Get-Command -Module Azure-SecurityAsCode
+```
+
 ## Usage Resource Group Download ##
 
 * Run 1 resource group or all
