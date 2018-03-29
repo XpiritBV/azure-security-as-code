@@ -1,4 +1,7 @@
 ![](https://xpirit.visualstudio.com/_apis/public/build/definitions/b0d59b52-bc4d-4af7-a6a2-768ae3158e76/101/badge)
+![](https://img.shields.io/powershellgallery/v/azure-securityascode.svg)
+![](https://img.shields.io/powershellgallery/dt/azure-securityascode.svg)
+
 ![Azure Security as Code](./img/logo.png "Azure Security as Code")
 Azure Security as Code is a set of scripts to define your azure security governance as code and avoid manual settings of permissions and avoiding configuration drift.
 
