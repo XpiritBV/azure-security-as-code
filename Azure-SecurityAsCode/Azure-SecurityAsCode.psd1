@@ -71,15 +71,26 @@ Copyright = '(c) Xpirit. All rights reserved.'
                    'Keyvault-Module.psm1')
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = @('Get-Asac-ResourceGroup',
+FunctionsToExport = @(#resource group module
+                      'Get-Asac-ResourceGroup',
                       'Get-Asac-AllResourceGroups',
                       'Process-Asac-ResourceGroup',
+                      #security group module
                       'Get-Asac-SecurityGroup',
                       'Get-Asac-AllSecurityGroups',
                       'Process-Asac-SecurityGroup',
+                      #keyvault module
                       'Get-Asac-Keyvault',
                       'Get-Asac-AllKeyvaults',
-                      'Process-Asac-Keyvault')
+                      'Process-Asac-Keyvault',
+                      #sql module
+                      'New-Asac-SQLServer', 
+                      'Get-Asac-SQLServer', 
+                      'Get-Asac-AllSQLServers', 
+                      'Get-Asac-AllSQLDatabases', 
+                      'Process-Asac-SQLServer', 
+                      'Process-Asac-SQLDatabase', 
+                      'Rotate-Asac-SQLServerPassword')
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 #CmdletsToExport = @()

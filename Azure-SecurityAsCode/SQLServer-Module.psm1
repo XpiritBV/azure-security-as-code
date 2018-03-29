@@ -499,9 +499,4 @@ function Rotate-Asac-SQLServerPassword {
     #since we know the keyvault and the sql, we can rotate password and update keyvault..
 }
 
-#Get-Asac-AllSQLServers -outputPath .\damco
-#Get-Asac-AllSQLServers -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -outputPath .\rvoazure -centralkeyvault asackeyvault 
-#Process-Asac-SQLServer -sqlservername rvosqlasac1 -resourcegroupname rgpgeert -basePath .\rvoazure
-#Get-Asac-AllSQLDatabases -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -outputpath .\rvoazure
-Process-Asac-SQLDatabase -sqlservername rvosqlasac1 -resourcegroupname rgpGeert -basePath .\rvoazure
-#Get-Asac-AllSQLDatabases -outputpath .\rvoazure
+Export-ModuleMember -Function New-Asac-SQLServer, Get-Asac-SQLServer, Get-Asac-AllSQLServers, Get-Asac-AllSQLDatabases, Process-Asac-SQLServer, Process-Asac-SQLDatabase, Rotate-Asac-SQLServerPassword
