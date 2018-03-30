@@ -31,6 +31,18 @@ function _Get-Asac-OutputPath
     return $outputPath
 }
 
+function _IsLoggedIn{
+    
+    $account = Invoke-Asac-AzCommandLine -azCommandLine "az account show" 2>$null
+
+    if($account -ne $null){
+        return $true
+    }
+    else{
+        return $false
+    }
+}
+
 
 #source code from https://powershellstation.com/2009/09/15/executing-sql-the-right-way-in-powershell/
 function _Execute-NonQuery

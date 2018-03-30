@@ -27,7 +27,7 @@ function Store-Asac-LoginConfig{
         subscription = $subscription
     }
 
-    $file = Join-Path $outputPath -ChildPath "asac-config.yml"
+    $file = Join-Path $outputPath -ChildPath "asac-account.yml"
     ConvertTo-YAML $configDict > $file
 }
 
@@ -40,7 +40,7 @@ function Get-Asac-Config{
 
     $basePath = _Get-Asac-OutputPath -outputPath $basePath
 
-    $file = Join-Path $basePath -ChildPath "asac-config.yml"
+    $file = Join-Path $basePath -ChildPath "asac-account.yml"
     $yamlContent = Get-Content -Path $file -Raw
     $config = ConvertFrom-Yaml $yamlContent
 
