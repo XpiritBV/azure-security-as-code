@@ -15,6 +15,7 @@ rvoazure/
 damco/
 login.txt
 commands.zip
+asac-config.yml
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
