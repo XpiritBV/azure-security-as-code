@@ -46,28 +46,11 @@ Get-Command -Module Azure-SecurityAsCode
 * Run 1 resource group or all
 
 ```powershell
-Download-AllResourceGroups
+Get-Asac-AllResourceGroups
 
 #or
 
-Download-ResourceGroupYaml -resourcegroup "resourcegroupName"
+Process-Asac-ResourceGroup -resourcegroup "resourcegroupName"
 ```
 
-## Usage Security Group Download ##
-
-* Run 1 security group or all
-* creates and looks for files in directory ad-group
-
-```powershell
-Download-AllSecurityGroups
-
-#or
-
-Download-SecurityGroupYaml -securitygroup "securitygroupName"
-```
-
-* Update yaml file with new users
-
-```powershell
-Update-SecurityGroup -securitygroup "securitygroupName"
-```
+For more information, please see the [Wiki](https://github.com/XpiritBV/azure-security-as-code/wiki)
