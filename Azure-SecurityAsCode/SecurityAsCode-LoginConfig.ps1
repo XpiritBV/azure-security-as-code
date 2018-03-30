@@ -14,18 +14,26 @@ function Store-Asac-LoginConfig{
         [string] $outputPath
     )
 
-    $outputPath = _Get-Asac-OutputPath -outputPath $outputPath 
-    $encryptionKey = Set-Key $key
-
-    $pw = Set-EncryptedData -key $encryptionKey -plainText $password
-    $pw
-
     $configDict = [ordered]@{
         principalId = $principalId
-        password = $pw.ToString()
+        password = $password
         tenantId = $tenantId
         subscription = $subscription
     }
+
+    $loggedIn = _Login -config $configDict
+    if($loggedIn -eq $true){
+        Write-Host "Logged In" -ForegroundColor Green
+    }else
+    {
+        Write-Host "NOT Logged In" -ForegroundColor Red
+        return
+    }
+
+    $outputPath = _Get-Asac-OutputPath -outputPath $outputPath 
+    $encryptionKey = Set-Key $key
+    $pw = Set-EncryptedData -key $encryptionKey -plainText $password
+    $configDict["password"] = $pw.ToString()
 
     $file = Join-Path $outputPath -ChildPath "asac-account.yml"
     ConvertTo-YAML $configDict > $file
