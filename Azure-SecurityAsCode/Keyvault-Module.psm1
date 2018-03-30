@@ -16,9 +16,14 @@ function Get-Asac-Keyvault {
  
     $accessPoliciesArray = @()
     foreach($accessPolicy in $keyvault.properties.accessPolicies){
+        #get displayname of object
+        $displayname = _Get-AADNameFromObjectId -Objectid $($accessPolicy.ObjectId)
+        Add-Member -InputObject $accessPolicy -type NoteProperty -Name 'displayname' -Value $displayname
+
         $accessPolicy.PSObject.Properties.Remove('tenantId')
         $accessPolicy.PSObject.Properties.Remove('applicationId')
         $accessPolicy.permissions.PSObject.Properties.Remove('storage')
+        
         $accessPoliciesArray += $accessPolicy
     }
     
@@ -113,5 +118,6 @@ function Process-Asac-Keyvault {
         }
     }
 }
+
 
 Export-ModuleMember -Function Get-Asac-Keyvault, Get-Asac-AllKeyvaults, Process-Asac-Keyvault

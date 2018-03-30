@@ -163,3 +163,38 @@ Function New-RandomComplexPassword ($length=8)
     $password = [System.Web.Security.Membership]::GeneratePassword($length,2)
     return $password
 }
+
+Function _Get-AADNameFromObjectId
+{
+    param
+    (
+        [string] $ObjectId
+    )
+
+    #This function retrieves the name of the group, spn or user for display
+
+    #most used is group.. Try this first
+    $group = Invoke-Asac-AzCommandLine -azCommandLine "az ad group show --group $objectid"
+
+    if ($group -ne $null) 
+    {
+        return $($group.displayName)
+    }
+
+    #now users
+    $user = Invoke-Asac-AzCommandLine -azCommandLine "az ad user show --upn-or-object-id $objectid"
+
+    if ($user -ne $null) 
+    {
+        return $($user.userPrincipalName)
+    }
+
+    #now spn
+    $spn = Invoke-Asac-AzCommandLine -azCommandLine "az ad sp show --id $objectid"
+    if ($spn -ne $null) 
+    {
+        return $($spn.displayName)
+    }
+
+    return ""
+}
