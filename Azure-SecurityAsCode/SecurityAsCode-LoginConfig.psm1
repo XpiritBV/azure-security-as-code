@@ -39,7 +39,7 @@ function Store-Asac-LoginConfig{
     ConvertTo-YAML $configDict > $file
 }
 
-function Get-Asac-Config{
+function Get-Asac-LoginConfig{
     param
     (
         [string] $basePath,
@@ -82,3 +82,5 @@ function _Get-EncryptedData {
     $data | ConvertTo-SecureString -key $key |
     ForEach-Object {[Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($_))}
 }
+
+Export-ModuleMember -Function Store-Asac-LoginConfig, Get-Asac-LoginConfig
