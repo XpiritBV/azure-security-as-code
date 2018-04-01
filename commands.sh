@@ -11,3 +11,7 @@ az login
 
 #check permissions
 ./Enforce-Azuresecurity.ps1
+
+#run docker container directly
+docker run -it -v `pwd`:/asac asac pwsh -c Get-Asac-AllResourceGroups
+

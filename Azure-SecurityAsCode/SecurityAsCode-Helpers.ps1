@@ -31,6 +31,34 @@ function _Get-Asac-OutputPath
     return $outputPath
 }
 
+function _IsLoggedIn{
+    
+    $account = Invoke-Asac-AzCommandLine -azCommandLine "az account show --output json" 2>$null
+    if($account -ne $null){
+        return $true
+    }
+    else{
+        return $false
+    }
+}
+
+function _LogIn{
+    param 
+    (
+        [hashtable] $config
+    )
+    Invoke-Asac-AzCommandLine -azCommandLine "az logout" 2>$null
+    $account = Invoke-Asac-AzCommandLine -azCommandLine "az login --service-principal -u $($config.principalId) -p $($config.password) --tenant $($config.tenantId) --output json"
+    $account = Invoke-Asac-AzCommandLine -azCommandLine "az account set -s $($config.subscription)"
+
+    if(_IsLoggedIn){
+        return $true
+    }
+    else{
+        return $false
+    }
+}
+
 
 #source code from https://powershellstation.com/2009/09/15/executing-sql-the-right-way-in-powershell/
 function _Execute-NonQuery
