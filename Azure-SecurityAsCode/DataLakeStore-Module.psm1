@@ -50,8 +50,12 @@ function _Get-DLS-Folder-AccessEntries {
         
 
         if ($username -ne "") {
+
+            $displayname = _Get-AADNameFromObjectId -Objectid $($username)
+
             $aeDict = [ordered]@{
-                userprincipal = $username
+                userObjectID = $username
+                displayName = $displayname
                 type = $type
                 isDefault = $def
                 permissions = $rights
@@ -157,6 +161,8 @@ function _Set-DLS-Folder-Security {
         [string] $filePath
     )
 
+    Write-Host "Processing Path [$($filePath)]" -ForegroundColor DarkYellow
+    
     $dlsfYamlContent = Get-Content -Path $filePath -Raw
     $dlsfConfigured = ConvertFrom-Yaml $dlsfYamlContent
 
@@ -167,15 +173,30 @@ function _Set-DLS-Folder-Security {
 
     foreach ($ae in $dlsfConfigured.access) {
         
+        
         $aclspec = ""
         if ($ae.isDefault -eq $true) {
             $aclspec += "default:"
         }
-        
-        $aclspec = $aclspec + "$($ae.type):$($ae.userprincipal):$($ae.permissions)"
+
+
+        if ($ae.userObjectID -eq "" -or $ae.userObjectID -eq $null )
+        {
+            if ($ae.displayName -eq "" -or $ae.displayName -eq $null )
+            {
+                continue
+            }
+            $userObjectID = _Get-AADObjectIdFromName -name $ae.displayName
+        }
+        else 
+        {
+            $userObjectID=$ae.userObjectID
+        }
+
+        $aclspec = $aclspec + "$($ae.type):$($userObjectID):$($ae.permissions)"
         
         $azCommand = "az dls fs access set-entry --account ""$($datalakeStoreAccount)"" --path ""/$($dlsfConfigured.folderPath)"" --acl-spec ""$($aclspec)"""
-        Write-Host "Setting [$($ae.permissions)] on folder [$($dlsfConfigured.folderPath)] to user [$($ae.userprincipal)]" -ForegroundColor Green
+        Write-Host "Setting [$($ae.permissions)] on folder [$($dlsfConfigured.folderPath)] to user [$($ae.displayName)($($userObjectID))]" -ForegroundColor Green
         $result = Invoke-Asac-AzCommandLine -azCommandLine $azCommand
     }
 }
