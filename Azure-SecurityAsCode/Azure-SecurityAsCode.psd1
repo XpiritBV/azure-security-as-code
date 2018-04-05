@@ -70,7 +70,8 @@ Copyright = '(c) Xpirit. All rights reserved.'
                    'SecurityGroups-Module.psm1',
                    'Keyvault-Module.psm1',
                    'SQLServer-Module.psm1',
-                   'DataLakeStore-Module.psm1')
+                   'DataLakeStore-Module.psm1',
+                   'SecurityAsCode-LoginConfig.psm1')
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = @(#resource group module
@@ -94,8 +95,9 @@ FunctionsToExport = @(#resource group module
                       'Process-Asac-SQLDatabase', 
                       'Rotate-Asac-SQLServerPassword',
                       'Get-Asac-DataLakeStore',
-                      'Process-Asac-DataLakeStore')
-
+                      'Process-Asac-DataLakeStore',
+                      'Store-Asac-LoginConfig', 
+                      'Get-Asac-LoginConfig')
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 #CmdletsToExport = @()
