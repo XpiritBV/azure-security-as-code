@@ -72,7 +72,8 @@ function _Get-DLS-Folder-Structure {
         [string] $dlsPath,
         $folderArray,
         [int] $maxDepth,
-        [int] $currentDepth 
+        [int] $currentDepth ,
+        [string] $outputPath
     )
     $currentDepth = $currentDepth + 1
     if ($currentDepth -gt $maxDepth+1) {
@@ -98,12 +99,17 @@ function _Get-DLS-Folder-Structure {
             Write-Host "Processing Folder [$($f.name)]"
             $folderDict = [ordered]@{folderPath = $f.name}
             $folderArray += $folderDict
-            $folderArray = _Get-DLS-Folder-Structure -dlsPath "/$($f.name)" -folderArray $folderArray -maxDepth $maxDepth -currentDepth $currentDepth
+            $folderArray = _Get-DLS-Folder-Structure -dlsPath "/$($f.name)" -folderArray $folderArray -maxDepth $maxDepth -currentDepth $currentDepth -outputPath $outputPath
             $aeArray = _Get-DLS-Folder-AccessEntries -dlsName $dls.Name -dlsPath $dlsPath
             $folderDict.Add('access', $aeArray)
-    
+
+            $filename = $f.name -replace "/", "#"
+            $filePath = Join-Path $outputPath -ChildPath "dlsf.$($filename).yml"
+            ConvertTo-YAML $folderDict > $filePath
+            
         }
     }
+
 
     return $folderArray
 }
@@ -120,21 +126,26 @@ function Get-Asac-DataLakeStore {
 
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
+    
+    $path = Join-Path $outputPath -ChildPath "dls"
+    New-Item $path -Force -ItemType Directory | Out-Null
+    $dlspath = Join-Path $path -ChildPath "$($dls.name)"
+    New-Item $dlspath -Force -ItemType Directory | Out-Null
+    $filePath = Join-Path $dlspath -ChildPath "dls.$($datalakeStoreAccount).yml"
 
     $dls = Invoke-Asac-AzCommandLine -azCommandLine "az dls account show --account $($datalakeStoreAccount) --output json"
 
+    
     $dlsDict = [ordered]@{name = $dls.name
         resourcegroupname = $dls.resourceGroup
     }
 
     $folderArray = @()
-    $folderArray = _Get-DLS-Folder-Structure -dlsPath "/" -folderArray $folderArray -maxDepth $maxDepth -currentDepth 0
+    $folderArray = _Get-DLS-Folder-Structure -dlsPath "/" -folderArray $folderArray -maxDepth $maxDepth -currentDepth 0 -outputpath $dlsPath
 
     $dlsDict.Add('folders', $folderArray)
 
-    $path = Join-Path $outputPath -ChildPath "dls"
-    New-Item $path -Force -ItemType Directory | Out-Null
-    $filePath = Join-Path $path -ChildPath "dls.$($dls.name).yml"
+    
     Write-Host $filePath
     ConvertTo-YAML $dlsDict > $filePath
 }
