@@ -129,7 +129,7 @@ function Get-Asac-DataLakeStore {
     
     $path = Join-Path $outputPath -ChildPath "dls"
     New-Item $path -Force -ItemType Directory | Out-Null
-    $dlspath = Join-Path $path -ChildPath "$($dls.name)"
+    $dlspath = Join-Path $path -ChildPath "$($datalakeStoreAccount)"
     New-Item $dlspath -Force -ItemType Directory | Out-Null
     $filePath = Join-Path $dlspath -ChildPath "dls.$($datalakeStoreAccount).yml"
 
