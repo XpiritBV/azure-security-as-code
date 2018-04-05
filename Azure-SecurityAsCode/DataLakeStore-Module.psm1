@@ -70,9 +70,15 @@ function _Get-DLS-Folder-Structure {
     param
     (
         [string] $dlsPath,
-        $folderArray
+        $folderArray,
+        [int] $maxDepth,
+        [int] $currentDepth 
     )
-
+    $currentDepth = $currentDepth + 1
+    if ($currentDepth -gt $maxDepth+1) {
+        Write-Host "Exiting loop because of Max Depth [$($maxDepth)]"
+        return $folderArray;
+    }
     Write-Host "Processing Folders"
     $folders = "$(az dls fs list --account $dls.Name --path "$($dlspath)")" 
     $folders = ConvertFrom-Json $folders
@@ -87,11 +93,12 @@ function _Get-DLS-Folder-Structure {
     }
 
     foreach ($f in $folders) {
+        
         if ($f.type -eq "DIRECTORY") {
             Write-Host "Processing Folder [$($f.name)]"
             $folderDict = [ordered]@{folderPath = $f.name}
             $folderArray += $folderDict
-            $folderArray = _Get-DLS-Folder-Structure -dlsPath "/$($f.name)" -folderArray $folderArray
+            $folderArray = _Get-DLS-Folder-Structure -dlsPath "/$($f.name)" -folderArray $folderArray -maxDepth $maxDepth -currentDepth $currentDepth
             $aeArray = _Get-DLS-Folder-AccessEntries -dlsName $dls.Name -dlsPath $dlsPath
             $folderDict.Add('access', $aeArray)
     
@@ -107,7 +114,8 @@ function Get-Asac-DataLakeStore {
     param
     (
         [string] $datalakeStoreAccount,
-        [string] $outputPath
+        [string] $outputPath,
+        [int] $maxDepth=3
     )
 
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
@@ -120,7 +128,7 @@ function Get-Asac-DataLakeStore {
     }
 
     $folderArray = @()
-    $folderArray = _Get-DLS-Folder-Structure -dlsPath "/" -folderArray $folderArray
+    $folderArray = _Get-DLS-Folder-Structure -dlsPath "/" -folderArray $folderArray -maxDepth $maxDepth -currentDepth 0
 
     $dlsDict.Add('folders', $folderArray)
 
