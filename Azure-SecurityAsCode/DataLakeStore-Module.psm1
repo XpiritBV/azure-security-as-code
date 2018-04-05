@@ -50,15 +50,15 @@ function _Get-DLS-Folder-AccessEntries {
         
 
         if ($username -ne "") {
-        $aeDict = [ordered]@{
-            userprincipal = $username
-            type = $type
-            isDefault = $def
-            permissions = $rights
-        }
+            $aeDict = [ordered]@{
+                userprincipal = $username
+                type = $type
+                isDefault = $def
+                permissions = $rights
+            }
 
-        $aeArray += $aeDict
-    }
+            $aeArray += $aeDict
+        }
         
     }
     
@@ -76,7 +76,7 @@ function _Get-DLS-Folder-Structure {
         [string] $outputPath
     )
     $currentDepth = $currentDepth + 1
-    if ($currentDepth -gt $maxDepth+1) {
+    if ($currentDepth -gt $maxDepth + 1) {
         Write-Host "Exiting loop because of Max Depth [$($maxDepth)]"
         return $folderArray;
     }
@@ -121,7 +121,7 @@ function Get-Asac-DataLakeStore {
     (
         [string] $datalakeStoreAccount,
         [string] $outputPath,
-        [int] $maxDepth=3
+        [int] $maxDepth = 3
     )
 
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
@@ -150,6 +150,64 @@ function Get-Asac-DataLakeStore {
     ConvertTo-YAML $dlsDict > $filePath
 }
 
+function _Set-DLS-Folder-Security {
+    param
+    (
+        [string] $datalakeStoreAccount,
+        [string] $filePath
+    )
+
+    $dlsfYamlContent = Get-Content -Path $filePath -Raw
+    $dlsfConfigured = ConvertFrom-Yaml $dlsfYamlContent
+
+    if ($dlsfConfigured.access.length -eq 0) {
+        Write-Host "No access permissions defined for [$($dlsfConfigured.folderPath)]" -ForegroundColor Cyan
+        return
+    }
+
+    foreach ($ae in $dlsfConfigured.access) {
+        
+        $aclspec = ""
+        if ($ae.isDefault -eq $true) {
+            $aclspec += "default:"
+        }
+        
+        $aclspec = $aclspec + "$($ae.type):$($ae.userprincipal):$($ae.permissions)"
+        
+        $azCommand = "az dls fs access set-entry --account ""$($datalakeStoreAccount)"" --path ""/$($dlsfConfigured.folderPath)"" --acl-spec ""$($aclspec)"""
+        Write-Host "Setting [$($ae.permissions)] on folder [$($dlsfConfigured.folderPath)] to user [$($ae.userprincipal)]" -ForegroundColor Green
+        $result = Invoke-Asac-AzCommandLine -azCommandLine $azCommand
+    }
+}
+
+function Process-Asac-DataLakeStore {
+    param
+    (
+        [string] $datalakeStoreAccount,
+        [string] $basePath
+        
+    )
+
+    $basePath = _Get-Asac-OutputPath -outputPath $basePath
+
+    $path = Join-Path $basePath -ChildPath "dls"
+    $dlspath = Join-Path $path -ChildPath "$($datalakeStoreAccount)"
+    $dlsfile = Join-Path $dlspath -ChildPath "dls.$($datalakeStoreAccount).yml"
+    
+    $yamlContent = Get-Content -Path $dlsfile -Raw
+    $dlsConfigured = ConvertFrom-Yaml $yamlContent
+
+    $files = Get-ChildItem $dlspath -Filter dlsf.* 
+
+    foreach ($f in $files) {
+
+        _Set-DLS-Folder-Security -filePath $f.FullName -datalakeStoreAccount $datalakeStoreAccount
+        
+    }
+
+}
 
 
-Export-ModuleMember -Function Get-Asac-DataLakeStore
+
+
+Export-ModuleMember -Function Get-Asac-DataLakeStore, Process-Asac-DataLakeStore
