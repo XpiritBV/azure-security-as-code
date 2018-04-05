@@ -12,3 +12,5 @@ az dls fs list --account rvodls1 --path /
 #We need to use set-entry. We need to add it manually to all the subfolders . The apply to all children in the UI is also doing that. There is no
 #setting for recurse. So when a new folder is created, it needs to be reapplied. So creating the folder, should read the setting from its parent
 #and then reapply
+
+#other: sets rights for "Everyone else"

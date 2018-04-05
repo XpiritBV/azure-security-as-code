@@ -94,6 +94,9 @@ function _Get-DLS-Folder-Structure {
         $folderArray += $folderDict
         $aeArray = _Get-DLS-Folder-AccessEntries -dlsName $dls.Name -dlsPath "/"
         $folderDict.Add('access', $aeArray)
+        $filename = $f.name -replace "/", "#"
+        $filePath = Join-Path $outputPath -ChildPath "dlsf.$($filename).yml"
+        ConvertTo-YAML $folderDict > $filePath        
 
     }
 
