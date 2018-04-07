@@ -8,7 +8,9 @@ function Invoke-Asac-AzCommandLine
         [string] $ReplaceValue
     )
 
-    $resultJson  = "$(Invoke-Expression $azCommandLine)"
+    #2>&1 redirects error output into oblivion.
+    # https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_redirection?view=powershell-6&viewFallbackFrom=powershell-Microsoft.PowerShell.Core
+    $resultJson  = "$(Invoke-Expression $azCommandLine 2>&1)"
     if ($RegEx -ne "" -or $RegEx -ne $null) {
         $resultJson = $resultJson -replace $RegEx, $ReplaceValue
     }
@@ -202,7 +204,7 @@ Function _Get-AADNameFromObjectId
     #This function retrieves the name of the group, spn or user for display
 
     #most used is group.. Try this first
-    $group = Invoke-Asac-AzCommandLine -azCommandLine "az ad group show --group $objectid"
+    $group = Invoke-Asac-AzCommandLine -azCommandLine "az ad group show --group ""$($ObjectId)""" 
 
     if ($group -ne $null) 
     {
@@ -210,7 +212,7 @@ Function _Get-AADNameFromObjectId
     }
 
     #now users
-    $user = Invoke-Asac-AzCommandLine -azCommandLine "az ad user show --upn-or-object-id $objectid"
+    $user = Invoke-Asac-AzCommandLine -azCommandLine "az ad user show --upn-or-object-id ""$($ObjectId)"""
 
     if ($user -ne $null) 
     {
@@ -218,10 +220,58 @@ Function _Get-AADNameFromObjectId
     }
 
     #now spn
-    $spn = Invoke-Asac-AzCommandLine -azCommandLine "az ad sp show --id $objectid"
-    if ($spn -ne $null) 
+    $spn = Invoke-Asac-AzCommandLine -azCommandLine "az ad sp show --id ""$($ObjectId)"""
+    if ($spn -ne $null)
     {
         return $($spn.displayName)
+    }
+
+    return ""
+}
+
+Function _Get-AADObjectIdFromName
+{
+    param
+    (
+        [string] $name
+    )
+
+    #This function retrieves the name of the group, spn or user for display
+
+    #most used is group.. Try this first
+    $group = Invoke-Asac-AzCommandLine -azCommandLine "az ad group show --group ""$($name)""" 
+
+    if ($group -ne $null) 
+    {
+        return $($group.objectId)
+    }
+    else 
+    {
+        Write-Host "No Group found with name $($name)"
+    }
+
+    #now users
+    $user = Invoke-Asac-AzCommandLine -azCommandLine "az ad user show --upn-or-object-id ""$($name)"""
+
+    if ($user -ne $null) 
+    {
+        return $($user.objectId)
+    }
+    else 
+    {
+        Write-Host "No user found with name $($name). Use full principal name like test@domain.com"
+    }
+
+    #now spn
+    ##SPN need to be in format of https://domain.com/65f49925-2217-4e6f-86b5-733072e41bcedd"
+    $spn = Invoke-Asac-AzCommandLine -azCommandLine "az ad sp show --id ""$($name)"""
+    if ($spn -ne $null)
+    {
+        return $($spn.objectId)
+    }
+    else 
+    {
+        Write-Host "No SPN found with name $($name). Format should be https://domain.com/65f49925-2217-4e6f-86b5-733072e41bcedd/"
     }
 
     return ""
