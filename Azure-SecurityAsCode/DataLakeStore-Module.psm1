@@ -73,6 +73,7 @@ function _Get-DLS-Folder-AccessEntries {
 function _Get-DLS-Folder-Structure {
     param
     (
+        $datalakeAccountName,
         [string] $dlsPath,
         $folderArray,
         [int] $maxDepth,
@@ -85,14 +86,14 @@ function _Get-DLS-Folder-Structure {
         return $folderArray;
     }
     Write-Host "Processing Folders"
-    $folders = "$(az dls fs list --account $dls.Name --path "$($dlspath)")" 
+    $folders = "$(az dls fs list --account $($datalakeAccountName) --path "$($dlspath)")" 
     $folders = ConvertFrom-Json $folders
     
     if ($dlsPath -eq "/") {
         #also the root folder
         $folderDict = [ordered]@{folderPath = "/"}
         $folderArray += $folderDict
-        $aeArray = _Get-DLS-Folder-AccessEntries -dlsName $dls.Name -dlsPath "/"
+        $aeArray = _Get-DLS-Folder-AccessEntries -dlsName $($datalakeAccountName) -dlsPath "/"
         $folderDict.Add('access', $aeArray)
         $filename = $f.name -replace "/", "#"
         $filePath = Join-Path $outputPath -ChildPath "dlsf.$($filename).yml"
@@ -106,8 +107,8 @@ function _Get-DLS-Folder-Structure {
             Write-Host "Processing Folder [$($f.name)]"
             $folderDict = [ordered]@{folderPath = $f.name}
             $folderArray += $folderDict
-            $folderArray = _Get-DLS-Folder-Structure -dlsPath "/$($f.name)" -folderArray $folderArray -maxDepth $maxDepth -currentDepth $currentDepth -outputPath $outputPath
-            $aeArray = _Get-DLS-Folder-AccessEntries -dlsName $dls.Name -dlsPath $dlsPath
+            $folderArray = _Get-DLS-Folder-Structure -datalakeAccountName $($datalakeAccountName) -dlsPath "/$($f.name)" -folderArray $folderArray -maxDepth $maxDepth -currentDepth $currentDepth -outputPath $outputPath
+            $aeArray = _Get-DLS-Folder-AccessEntries -dlsName $($datalakeAccountName) -dlsPath $dlsPath
             $folderDict.Add('access', $aeArray)
 
             $filename = $f.name -replace "/", "#"
@@ -148,7 +149,7 @@ function Get-Asac-DataLakeStore {
     }
 
     $folderArray = @()
-    $folderArray = _Get-DLS-Folder-Structure -dlsPath "/" -folderArray $folderArray -maxDepth $maxDepth -currentDepth 0 -outputpath $dlsPath
+    $folderArray = _Get-DLS-Folder-Structure -datalakeAccountName $($dls.Name) -dlsPath "/" -folderArray $folderArray -maxDepth $maxDepth -currentDepth 0 -outputpath $dlsPath
 
     $dlsDict.Add('folders', $folderArray)
 
@@ -176,31 +177,32 @@ function _Set-DLS-Folder-Security {
 
     foreach ($ae in $dlsfConfigured.access) {
         
-        
+        $userObjectID = "";
+
         $aclspec = ""
         if ($ae.isDefault -eq $true) {
             $aclspec += "default:"
         }
 
-
-        if ($ae.userObjectID -eq "" -or $ae.userObjectID -eq $null )
-        {
-            if ($ae.displayName -eq "" -or $ae.displayName -eq $null )
+        if ($ae.type -ne "other") {
+            if ($ae.userObjectID -eq "" -or $ae.userObjectID -eq $null )
             {
-                continue
+                if ($ae.displayName -eq "" -or $ae.displayName -eq $null )
+                {
+                    continue
+                }
+                $userObjectID = _Get-AADObjectIdFromName -name $ae.displayName
             }
-            $userObjectID = _Get-AADObjectIdFromName -name $ae.displayName
+            else 
+            {
+                $userObjectID=$ae.userObjectID
+            }
         }
-        else 
-        {
-            $userObjectID=$ae.userObjectID
-        }
-
         $aclspec = $aclspec + "$($ae.type):$($userObjectID):$($ae.permissions)"
         
         $azCommand = "az dls fs access set-entry --account ""$($datalakeStoreAccount)"" --path ""/$($dlsfConfigured.folderPath)"" --acl-spec ""$($aclspec)"""
         Write-Host "Setting [$($ae.permissions)] on folder [$($dlsfConfigured.folderPath)] to user [$($ae.displayName)($($userObjectID))]" -ForegroundColor Green
-        $result = Invoke-Asac-AzCommandLine -azCommandLine $azCommand
+        $result = Invoke-Asac-AzCommandLine -azCommandLine $azCommand -verbose
     }
 }
 

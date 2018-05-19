@@ -5,12 +5,19 @@ function Invoke-Asac-AzCommandLine
     (
         [string] $azCommandLine,
         [string] $RegEx,
-        [string] $ReplaceValue
+        [string] $ReplaceValue,
+        [switch] $verbose
     )
 
     #2>&1 redirects error output into oblivion.
     # https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_redirection?view=powershell-6&viewFallbackFrom=powershell-Microsoft.PowerShell.Core
-    $resultJson  = "$(Invoke-Expression $azCommandLine 2>&1)"
+    if ($verbose.IsPresent -ne $true) {
+        $resultJson  = "$(Invoke-Expression $azCommandLine 2>&1)"
+    }
+    else {
+        $resultJson  = "$(Invoke-Expression $azCommandLine)"
+    }
+
     if ($RegEx -ne "" -or $RegEx -ne $null) {
         $resultJson = $resultJson -replace $RegEx, $ReplaceValue
     }
