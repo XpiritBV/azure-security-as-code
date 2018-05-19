@@ -439,18 +439,18 @@ function Process-Asac-SQLDatabase {
             }
             $userpassword = New-RandomComplexPassword -length 15
             #creates login (if not exist and updates the password)
-            $mastersql = Get-Content -Path .\templatescripts\sql.master.sql -Raw
+            $mastersql = Get-Content -Path $PSScriptRoot\templatescripts\sql.master.sql -Raw
             $mastersql = $mastersql -replace "@sqlusername", "$($u.sqluser)"
             $mastersql = $mastersql -replace "@sqlpassword", "$($userpassword)"
 
-            $masterupwsql = Get-Content -Path .\templatescripts\sql.master-updatepw.sql -Raw
+            $masterupwsql = Get-Content -Path $PSScriptRoot\templatescripts\sql.master-updatepw.sql -Raw
             $masterupwsql = $masterupwsql -replace "@sqlusername", "$($u.sqluser)"
             $masterupwsql = $masterupwsql -replace "@sqlpassword", "$($userpassword)"
             
-            $droprolesql = Get-Content -Path .\templatescripts\sql.dbrole-drop.sql -Raw
+            $droprolesql = Get-Content -Path $PSScriptRoot\templatescripts\sql.dbrole-drop.sql -Raw
             $droprolesql = $droprolesql -replace "@sqlusername", "$($u.sqluser)"
 
-            $dbsql = Get-Content -Path .\templatescripts\sql.db.sql -Raw
+            $dbsql = Get-Content -Path $PSScriptRoot\templatescripts\sql.db.sql -Raw
             $dbsql = $dbsql -replace "@sqlusername", "$($u.sqluser)"
             $masterpw = _Get-KeyVaultSecret -keyvaultname $($sqlConfigured.sqladminpassword.keyvaultname) -secretname "$($sqlConfigured.sqladminpassword.secretname)"
                 
@@ -464,7 +464,7 @@ function Process-Asac-SQLDatabase {
             _Execute-NonQuery -sql $droprolesql -servername $sqlservername -dbname $($dbConfigured.databaseName) -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
             
             foreach ($r in $u.roles) {
-                $dbrolesql = Get-Content -Path .\templatescripts\sql.dbrole.sql -Raw
+                $dbrolesql = Get-Content -Path $PSScriptRoot\templatescripts\sql.dbrole.sql -Raw
                 $dbrolesql = $dbrolesql -replace "@sqlusername", "$($u.sqluser)"
                 $dbrolesql = $dbrolesql -replace "@sqlrole", "$($r)"
                 _Execute-NonQuery -sql $dbrolesql -servername $sqlservername -dbname $($dbConfigured.databaseName) -username $($sqlConfigured.sqladminlogin) -password "$($masterpw)" -isIntegrated $false 
