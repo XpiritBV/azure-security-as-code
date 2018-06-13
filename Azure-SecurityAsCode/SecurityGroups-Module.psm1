@@ -8,15 +8,14 @@ function Get-Asac-SecurityGroup
     param
     (
         [string] $securityGroup,
+        [string] $securitygroupId,
         [string] $outputPath
         
     )
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
-    
-    $users = "$(az ad group member list --group "$($securityGroup)")"
+    $users = "$(az ad group member list --group "$($securitygroupId)")"
     $users = ConvertFrom-Json $users
-
     
     $userArray = @()
 
@@ -96,14 +95,12 @@ function Get-Asac-AllSecurityGroups
     
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath
 
-
-
     $secGroups = "$(az ad group list --output json)"
     $secGroups = ConvertFrom-Json $secGroups
 
 
     foreach ($sg in $secGroups) {
-        Get-Asac-SecurityGroup -securityGroup $sg.displayName -outputPath $outputPath
+        Get-Asac-SecurityGroup -securityGroup $sg.displayName -securitygroupId $sg.objectId -outputPath $outputPath
     }
 }
 
