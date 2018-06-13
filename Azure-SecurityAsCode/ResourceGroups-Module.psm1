@@ -18,14 +18,14 @@ function Get-Asac-ResourceGroup
 
     $roleassignment = "$(az role assignment list -g "$($resourcegroup)")" 
     $roleassignment = ConvertFrom-Json $roleassignment
-    $roleassignment | Sort-Object -Property $_.properties.roleDefinitionName
+    $roleassignment | Sort-Object -Property $_.roleDefinitionName
 
     $rbacArray = @()
     foreach($role in $roleassignment)
     {
-        $rbacDict = [ordered]@{userPrincipal = $role.properties.principalName
-                               principalId = $role.properties.principalId
-                               role = $role.properties.roleDefinitionName}
+        $rbacDict = [ordered]@{userPrincipal = $role.principalName
+                               principalId = $role.principalId
+                               role = $role.roleDefinitionName}
         $rbacArray += $rbacDict
 
     }
@@ -95,7 +95,7 @@ function Process-Asac-ResourceGroup
             $principalID = $user.objectid
         }
 
-        $foundUser = $rgRoles | Where-Object {$_.properties.principalId -eq $principalID -and $_.properties.roleDefinitionName -eq $($upn.role)}
+        $foundUser = $rgRoles | Where-Object {$_.principalId -eq $principalID -and $_.roleDefinitionName -eq $($upn.role)}
         
         if ($foundUser -eq $null)
         {
@@ -118,8 +118,8 @@ function Process-Asac-ResourceGroup
             $nonProcessed = $rgRoles | Where-Object {$_.Processed -eq $null -or $_.Processed -eq $false}
             foreach ($as in $nonProcessed)
             {
-                Write-Host "Deleting [$($as.properties.principalName)] from role [$($as.properties.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
-                Invoke-Asac-AzCommandLine -azCommandLine "az role assignment delete --role ""$($as.properties.roleDefinitionName)"" --assignee $($as.properties.principalId) --resource-group $($resourcegroup)"
+                Write-Host "Deleting [$($as.principalName)] from role [$($as.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
+                Invoke-Asac-AzCommandLine -azCommandLine "az role assignment delete --role ""$($as.roleDefinitionName)"" --assignee $($as.principalId) --resource-group $($resourcegroup)"
             }
     }
 
