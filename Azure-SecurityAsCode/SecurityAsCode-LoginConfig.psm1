@@ -31,8 +31,8 @@ function Store-Asac-LoginConfig{
     }
 
     $outputPath = _Get-Asac-OutputPath -outputPath $outputPath 
-    $encryptionKey = Set-Key $key
-    $pw = Set-EncryptedData -key $encryptionKey -plainText $password
+    $encryptionKey = _Set-Key $key
+    $pw = _Set-EncryptedData -key $encryptionKey -plainText $password
     $configDict["password"] = $pw.ToString()
 
     $file = Join-Path $outputPath -ChildPath "asac-account.yml"
@@ -52,7 +52,7 @@ function Get-Asac-LoginConfig{
     $yamlContent = Get-Content -Path $file -Raw
     $config = ConvertFrom-Yaml $yamlContent
 
-    $encryptionKey = Set-Key $key
+    $encryptionKey = _Set-Key $key
     $config.password = Get-EncryptedData -data $config.password -key $encryptionKey
 
     return $config
