@@ -53,13 +53,10 @@ function _LogIn{
     $account = Invoke-Asac-AzCommandLine -azCommandLine "az login --service-principal -u $($config.principalId) -p $($config.password) --tenant $($config.tenantId) --output json"
     $account = Invoke-Asac-AzCommandLine -azCommandLine "az account set -s $($config.subscription)"
 
-    Write-Host $account
     if(_IsLoggedIn){
-        Write-Host "true"
         return $true
     }
     else{
-        Write-Host "false"
         return $false
     }
 }

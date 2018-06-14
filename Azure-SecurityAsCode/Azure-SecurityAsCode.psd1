@@ -97,7 +97,8 @@ FunctionsToExport = @(#resource group module
                       'Get-Asac-DataLakeStore',
                       'Process-Asac-DataLakeStore',
                       'Store-Asac-LoginConfig', 
-                      'Get-Asac-LoginConfig')
+                      'Get-Asac-LoginConfig',
+                      'Initialize-Asac-Account')
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 #CmdletsToExport = @()

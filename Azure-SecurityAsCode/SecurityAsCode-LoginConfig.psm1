@@ -53,9 +53,28 @@ function Get-Asac-LoginConfig{
     $config = ConvertFrom-Yaml $yamlContent
 
     $encryptionKey = _Set-Key $key
-    $config.password = Get-EncryptedData -data $config.password -key $encryptionKey
+    $config.password = _Get-EncryptedData -data $config.password -key $encryptionKey
 
     return $config
+}
+
+function Initialize-Asac-Account{
+    param
+    (
+        [string] $basePath,
+        [string] $key
+    ) 
+
+    $config = Get-Asac-LoginConfig -basepath $basePath -key $key
+
+    $loggedIn = _Login -config $config
+    if($loggedIn -eq $true){
+        Write-Host "Logged In" -ForegroundColor Green
+    }else
+    {
+        Write-Host "NOT Logged In" -ForegroundColor Red
+        return
+    }
 }
 
 function _Set-Key {
@@ -83,4 +102,4 @@ function _Get-EncryptedData {
     ForEach-Object {[Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($_))}
 }
 
-Export-ModuleMember -Function Store-Asac-LoginConfig, Get-Asac-LoginConfig
+Export-ModuleMember -Function Store-Asac-LoginConfig, Get-Asac-LoginConfig, Initialize-Asac-Account
