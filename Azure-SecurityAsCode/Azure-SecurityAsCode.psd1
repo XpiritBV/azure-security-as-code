@@ -78,6 +78,7 @@ FunctionsToExport = @(#resource group module
                       'Get-Asac-ResourceGroup',
                       'Get-Asac-AllResourceGroups',
                       'Process-Asac-ResourceGroup',
+                      'Process-Asac-AllResourceGroups',
                       #security group module
                       'Get-Asac-SecurityGroup',
                       'Get-Asac-AllSecurityGroups',

@@ -113,16 +113,37 @@ function Process-Asac-ResourceGroup
         }
     }
 
-            #No Delete all users that have not been processed by file
+    #No Delete all users that have not been processed by file
 
-            $nonProcessed = $rgRoles | Where-Object {$_.Processed -eq $null -or $_.Processed -eq $false}
-            foreach ($as in $nonProcessed)
-            {
-                Write-Host "Deleting [$($as.principalName)] from role [$($as.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
-                Invoke-Asac-AzCommandLine -azCommandLine "az role assignment delete --role ""$($as.roleDefinitionName)"" --assignee $($as.principalId) --resource-group $($resourcegroup)"
-            }
+    $nonProcessed = $rgRoles | Where-Object {$_.Processed -eq $null -or $_.Processed -eq $false}
+    foreach ($as in $nonProcessed)
+    {
+        Write-Host "Deleting [$($as.principalName)] from role [$($as.roleDefinitionName)]. Not configured in file" -ForegroundColor DarkMagenta
+        Invoke-Asac-AzCommandLine -azCommandLine "az role assignment delete --role ""$($as.roleDefinitionName)"" --assignee $($as.principalId) --resource-group $($resourcegroup)"
     }
+}
+
+function Process-Asac-AllResourceGroups{
+    param
+    (
+        [string] $basePath
+    )
+
+    $basePath = _Get-Asac-OutputPath -outputPath $basePath
+    $path = Join-Path $basePath -ChildPath "rg"
+
+
+    $rgs = Get-ChildItem -Path $path
+
+    foreach($rg in $rgs)
+    {
+        $rgName = $rg.ToString().remove(0,3)
+        $rgName = $rgName.Substring(0,$rgName.IndexOf('.yml'))
+        
+        Process-Asac-ResourceGroup -resourcegroup $rgName -basePath $basePath
+    }
+}
 
 
 
-Export-ModuleMember -Function Get-Asac-ResourceGroup, Get-Asac-AllResourceGroups, Process-Asac-ResourceGroup
+Export-ModuleMember -Function Get-Asac-ResourceGroup, Get-Asac-AllResourceGroups, Process-Asac-ResourceGroup, Process-Asac-AllResourceGroups
