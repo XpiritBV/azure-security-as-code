@@ -1,4 +1,4 @@
-FROM microsoft/powershell
+FROM mcr.microsoft.com/powershell
 
 RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ trusty main" | \
     tee /etc/apt/sources.list.d/azure-cli.list
